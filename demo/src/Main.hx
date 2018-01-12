@@ -12,45 +12,57 @@ class Main extends hxd.App {
 
 		// Called on creation
         override function init() {
-			animation = new Anim(jump(), 10, s2d);
+			Res.initEmbed();
+			animation = new Anim(run(), 10, s2d);
         }
 
 
 		static function shoot() {
 			var shootTiles = new Array<Tile>();
-			for(resource in Res.Shoot) {
-				shootTiles.push(resource.toTile());
-			}
+			shootTiles.push(Res.character.Shoot.Shoot1.toTile());
+			shootTiles.push(Res.character.Shoot.Shoot2.toTile());
+			shootTiles.push(Res.character.Shoot.Shoot3.toTile());
 			return shootTiles;
 		}
 
 		static function slide() {
 			var slideTiles = new Array<Tile>();
-			for(resource in Res.Slide) {
-				slideTiles.push(resource.toTile());
-			}
+			slideTiles.push(Res.character.Slide.Slide1.toTile());
+			slideTiles.push(Res.character.Slide.Slide2.toTile());
+			slideTiles.push(Res.character.Slide.Slide3.toTile());
+			slideTiles.push(Res.character.Slide.Slide4.toTile());
+			slideTiles.push(Res.character.Slide.Slide5.toTile());
 			return slideTiles;
 		}
 
 		static function jump() {
 			var jumpTiles = new Array<Tile>();
-			for(resource in Res.Jump) {
-				jumpTiles.push(resource.toTile());
-			}
+			jumpTiles.push(Res.character.Jump.Jump1.toTile());
+			jumpTiles.push(Res.character.Jump.Jump2.toTile());
+			jumpTiles.push(Res.character.Jump.Jump3.toTile());
+			jumpTiles.push(Res.character.Jump.Jump4.toTile());
+			jumpTiles.push(Res.character.Jump.Jump5.toTile());
+			jumpTiles.push(Res.character.Jump.Jump6.toTile());
+			jumpTiles.push(Res.character.Jump.Jump7.toTile());
+			jumpTiles.push(Res.character.Jump.Jump8.toTile());
+			jumpTiles.push(Res.character.Jump.Jump9.toTile());
+			jumpTiles.push(Res.character.Jump.Jump10.toTile());
 			return jumpTiles;
 		}
 
 		static function run() {
 			var runTiles = new Array<Tile>();
-			for(resource in Res.Run) {
-				runTiles.push(resource.ToTile());
-			}
+			runTiles.push(Res.character.Run.Run1.toTile());
+			runTiles.push(Res.character.Run.Run2.toTile());
+			runTiles.push(Res.character.Run.Run3.toTile());
+			runTiles.push(Res.character.Run.Run4.toTile());
+			runTiles.push(Res.character.Run.Run5.toTile());
+			runTiles.push(Res.character.Run.Run6.toTile());
+			runTiles.push(Res.character.Run.Run7.toTile());
 			return runTiles;
 		}
 
         static function main() {
-
-			Res.initEmbed();
             new Main();
         }
     }
