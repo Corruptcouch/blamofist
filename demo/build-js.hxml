@@ -1,4 +1,6 @@
 -cp src
+-dce full
+-lib heaps
 -D analyzer-optimize
 -main Main
---interp
+-js bin/main.js
