@@ -2,5 +2,6 @@
 -dce full
 -lib heaps
 -D analyzer-optimize
+-D resourcesPath = "res"
 -main Main
 -js bin/main.js

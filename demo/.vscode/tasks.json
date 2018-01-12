@@ -2,15 +2,5 @@
     "version": "2.0.0",
     "command": "haxe",
     "args": ["build-js.hxml"],
-    "problemMatcher": "$haxe",
-    "tasks": [
-        {
-            "label": "Build",
-            "windows": {
-                "args": [
-                    "-lib heaps"
-                ]
-            }
-        }
-    ]
+    "problemMatcher": "$haxe"
 }
