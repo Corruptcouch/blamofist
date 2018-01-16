@@ -1,6 +1,7 @@
 -cp src
 -dce full
 -lib heaps
+-lib castle
 -D resourcesPath=res
--main Main
+-main Game
 -js bin/main.js
