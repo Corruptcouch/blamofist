@@ -2,6 +2,7 @@ package;
 
 import entities.Character;
 import h2d.Bitmap;
+import h2d.CdbLevel;
 import h2d.Layers;
 import h2d.Sprite;
 import h2d.Text;
@@ -25,7 +26,9 @@ class Game extends hxd.App
 	static var LAYER_ENVIRONMENT = 1;
 
 	var currentLevel : Int;
-
+	
+	var levels : dat.Data.Blamofist;
+	
 	var tiles : Tile;
 	var world : Layers;
 	var gamepad : Pad;
@@ -53,6 +56,7 @@ class Game extends hxd.App
 		world = new Layers(s2d);
 		world.filter = new h2d.filter.Bloom(0.5, 0.2, 2, 3);
 
+		
 		background = new Sprite(world);
 		background.filter = new h2d.filter.Blur(1, 3);
 		background.filter.smooth = true;
