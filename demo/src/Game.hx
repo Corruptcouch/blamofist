@@ -1,13 +1,8 @@
 package;
 
 import entities.Character;
-import h2d.Bitmap;
-import h2d.CdbLevel;
 import h2d.Layers;
 import h2d.Sprite;
-import h2d.Text;
-import h2d.Tile;
-import h2d.TileGroup;
 import hxd.Key;
 import hxd.Pad;
 import hxd.Res;
