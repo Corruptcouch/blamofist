@@ -4,14 +4,14 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="main.hl" />
+    <movie path="bin\bf.hl" />
     <movie fps="0" />
-    <movie width="0" />
-    <movie height="0" />
+    <movie width="800" />
+    <movie height="600" />
     <movie version="0" />
     <movie minorVersion="0" />
     <movie platform="HashLink" />
-    <movie background="#000000" />
+    <movie background="#FFFFFF" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
@@ -19,36 +19,37 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="windowSize=832x832&#xA;release" />
+    <option directives="" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="Game" />
     <option enabledebug="False" />
-    <option additional="-dce full&#xA;-D resourcePath=res" />
+    <option additional="" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
+    <library name="hldx" />
     <library name="heaps" />
     <library name="castle" />
-    <library name="hdlx" />
   </haxelib>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
-    <!-- example: <compile path="..." /> -->
+    <compile path="src\Main.hx" />
+    <compile path="src\Game.hx" />
   </compileTargets>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>
     <hidden path="obj" />
   </hiddenPaths>
   <!-- Executed before build -->
-  <preBuildCommand>cmd /c haxe $(OutputFile)</preBuildCommand>
+  <preBuildCommand />
   <!-- Executed after build -->
   <postBuildCommand alwaysRun="False" />
   <!-- Other project options -->
   <options>
     <option showHiddenPaths="False" />
     <option testMovie="Custom" />
-    <option testMovieCommand="main.hl" />
+    <option testMovieCommand="bin\bf.hl" />
   </options>
   <!-- Plugin storage -->
   <storage />

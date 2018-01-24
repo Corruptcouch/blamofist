@@ -1,8 +1,7 @@
 -lib heaps
 -lib castle
 -cp src
--js bin/main.js
--D resourcePath=res
+-js bin/bf.js
 -main Game
 -D windowSize=832x832
 -dce full

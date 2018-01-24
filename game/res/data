@@ -4,10 +4,6 @@
 			"name": "levels",
 			"columns": [
 				{
-					"name": "id",
-					"typeStr": "0"
-				},
-				{
 					"name": "width",
 					"typeStr": "3"
 				},
@@ -35,7 +31,6 @@
 			],
 			"lines": [
 				{
-					"id": "level1",
 					"width": 13,
 					"height": 13,
 					"tileProps": [],
@@ -142,7 +137,6 @@
 					]
 				},
 				{
-					"id": "level2",
 					"width": 13,
 					"height": 13,
 					"tileProps": [],
