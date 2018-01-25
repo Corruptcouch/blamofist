@@ -4,13 +4,13 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="bin\bf.hl" />
+    <movie path="bin\bf.js" />
     <movie fps="0" />
     <movie width="800" />
     <movie height="600" />
     <movie version="0" />
     <movie minorVersion="0" />
-    <movie platform="HashLink" />
+    <movie platform="JavaScript" />
     <movie background="#FFFFFF" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
@@ -24,7 +24,7 @@
     <option noInlineOnDebug="False" />
     <option mainClass="Game" />
     <option enabledebug="False" />
-    <option additional="" />
+    <option additional="-D windowSize=832x832" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
@@ -48,8 +48,8 @@
   <!-- Other project options -->
   <options>
     <option showHiddenPaths="False" />
-    <option testMovie="Custom" />
-    <option testMovieCommand="bin\bf.hl" />
+    <option testMovie="OpenDocument" />
+    <option testMovieCommand="" />
   </options>
   <!-- Plugin storage -->
   <storage />

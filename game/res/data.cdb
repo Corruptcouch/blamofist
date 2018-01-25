@@ -1,0 +1,288 @@
+{
+	"sheets": [
+		{
+			"name": "enemies",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id"
+				},
+				{
+					"typeStr": "4",
+					"name": "hp"
+				},
+				{
+					"typeStr": "7",
+					"name": "sprite",
+					"display": null
+				},
+				{
+					"typeStr": "6:projectiles",
+					"name": "projectile"
+				}
+			],
+			"lines": [
+				{
+					"id": "fighter",
+					"hp": 50,
+					"sprite": "2a41854e0eaa974e8619298f3b333e11",
+					"projectile": "phaser"
+				},
+				{
+					"id": "ufo",
+					"hp": 100,
+					"sprite": "18198bef76e4882928e4092344d0fb98",
+					"projectile": "phaser"
+				}
+			],
+			"separators": [],
+			"props": {}
+		},
+		{
+			"name": "levels",
+			"columns": [
+				{
+					"name": "width",
+					"typeStr": "3"
+				},
+				{
+					"name": "height",
+					"typeStr": "3"
+				},
+				{
+					"name": "props",
+					"typeStr": "16"
+				},
+				{
+					"name": "tileProps",
+					"typeStr": "8"
+				},
+				{
+					"name": "layers",
+					"typeStr": "8"
+				},
+				{
+					"typeStr": "6:enemies",
+					"name": "enemy",
+					"display": null
+				},
+				{
+					"typeStr": "11",
+					"name": "background"
+				},
+				{
+					"typeStr": "6:envParts",
+					"name": "envParts",
+					"display": null
+				}
+			],
+			"lines": [
+				{
+					"width": 20,
+					"height": 20,
+					"tileProps": [],
+					"layers": [],
+					"props": {
+						"tileSize": 32,
+						"layers": []
+					},
+					"enemy": "fighter",
+					"background": 13816016,
+					"envParts": "bigStar"
+				},
+				{
+					"width": 20,
+					"height": 20,
+					"tileProps": [],
+					"layers": [],
+					"enemy": "ufo",
+					"props": {
+						"tileSize": 32,
+						"layers": [
+							{
+								"l": "background",
+								"p": {
+									"alpha": 1
+								}
+							}
+						]
+					},
+					"background": 42678,
+					"envParts": "nebula"
+				}
+			],
+			"separators": [],
+			"props": {
+				"level": {
+					"tileSets": {}
+				}
+			}
+		},
+		{
+			"name": "levels@tileProps",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": []
+		},
+		{
+			"name": "levels@layers",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"name": "name",
+					"typeStr": "1"
+				},
+				{
+					"name": "data",
+					"typeStr": "15"
+				}
+			]
+		},
+		{
+			"name": "projectiles",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"display": null
+				},
+				{
+					"typeStr": "3",
+					"name": "damage"
+				},
+				{
+					"typeStr": "7",
+					"name": "image",
+					"display": null
+				}
+			],
+			"lines": [
+				{
+					"id": "laser",
+					"damage": 10,
+					"image": "ddf7102c86fc3ec46037714c60091851"
+				},
+				{
+					"id": "phaser",
+					"damage": 10,
+					"image": "6f0626e9839beb9d9a82ff40699aabfd"
+				}
+			],
+			"separators": [],
+			"props": {}
+		},
+		{
+			"name": "player",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"display": null
+				},
+				{
+					"typeStr": "3",
+					"name": "hp"
+				},
+				{
+					"typeStr": "7",
+					"name": "image",
+					"display": null
+				},
+				{
+					"typeStr": "6:projectiles",
+					"name": "projectile",
+					"display": null
+				}
+			],
+			"lines": [
+				{
+					"id": "player",
+					"hp": 100,
+					"image": "952e66c2dd458cfd6e82052f7123a97b",
+					"projectile": "laser"
+				}
+			],
+			"separators": [],
+			"props": {}
+		},
+		{
+			"name": "powerups",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"display": null
+				},
+				{
+					"typeStr": "7",
+					"name": "image",
+					"display": null
+				}
+			],
+			"lines": [
+				{
+					"id": "extralife",
+					"image": "9a5d93e699071693b15b7b157f760a90"
+				},
+				{
+					"id": "shield",
+					"image": "a672dc1a5f905918272bb58f1e236340"
+				}
+			],
+			"separators": [],
+			"props": {}
+		},
+		{
+			"name": "envParts",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"display": null
+				},
+				{
+					"typeStr": "7",
+					"name": "image",
+					"display": null
+				}
+			],
+			"lines": [
+				{
+					"id": "nebula",
+					"image": "e0fa4f86653c6fe97bc77271c46241c2"
+				},
+				{
+					"id": "speedLine",
+					"image": "ef791dbe8ea2e21cf697831e203803d5"
+				},
+				{
+					"id": "bigStar",
+					"image": "4e8f1abc8b48d75990117ea8b6207842"
+				},
+				{
+					"id": "smallStar",
+					"image": "609bf88a971475818f95816b8cf71508"
+				},
+				{
+					"id": "smallMeteor",
+					"image": "ebabf6690cc614f9e33f019c356166fa"
+				},
+				{
+					"id": "bigMeteor",
+					"image": "07f37816512f563dd68780fdee2e30a6"
+				}
+			],
+			"separators": [],
+			"props": {}
+		}
+	],
+	"customTypes": [],
+	"compress": false
+}
