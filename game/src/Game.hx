@@ -1,5 +1,6 @@
 package;
-import entities.Entity;
+import entities.Player;
+import entities.Enemy;
 import h2d.CdbLevel;
 import h2d.Layers;
 import h2d.Sprite;
@@ -21,10 +22,12 @@ import hxd.Res;
 @:publicFields
 class Game extends App
 {
+	public static var RATIO = 32;
+	
 	static var LAYER_BG = 0;
 	static var LAYER_ENT = 1;
-	static var LAYER_HERO = 5;
-	static var LAYER_ENVP = 7;
+	static var LAYER_HERO = 2;
+	static var LAYER_ENVP = 3;
 	
 	public static var LW = 13;
 	public static var LH = 13;
@@ -32,27 +35,44 @@ class Game extends App
 	var currentLevel: Int;
 	var gamePad: Pad;
 	
+	var player : entities.Player;
+	
 	var bmpTrans : h2d.Bitmap;
 	var bg: Sprite;
 	var world: Layers;
 	var bgLayer: TileGroup;
-	var entities: Array<Entity> = [];
+	var enemies: Array<Enemy> = [];
 	var parts: SpriteBatch;
 	var level: db.Data.Levels;
 	
 	var title : h2d.Bitmap;
 	
 	override function init() {
-		s2d.setFixedSize(LW * 32, LH * 32);
+		s2d.setFixedSize(LW * RATIO, LH * RATIO);
 		currentLevel = 0;
 		
 		world = new Layers(s2d);
 		world.filter = new Bloom(0.5, 0.2, 2, 3);
 		
+		bgLayer = new TileGroup(Res.background.grey.toTile());
+		
+		bg = new Sprite(world);
+		bg.filter = new Blur(1, 3);
+		bg.filter.smooth = true;
+		
+		var tile = Res.environment.nebula.toTile();
+		parts = new SpriteBatch(tile);
+		world.add(new Sprite(parts), LAYER_ENVP);
+		for( i in 0...10 ) {
+			parts.add(new EnvPart(tile));
+		}
+
+		world.add(bgLayer, LAYER_BG);
+		
 		gamePad = Pad.createDummy();
 		Pad.wait(function (p) gamePad = p);
-		
-		//Res.data.watch(onReload);
+
+		Res.data.watch(onReload);
 		
 		title = new h2d.Bitmap(Res.background.red.toTile(), world);
 		title.scale(2);
@@ -61,7 +81,7 @@ class Game extends App
 		tf.scale(0.5);
 		tf.textColor = 0xFFFFFF;
 		tf.text = "Press space / A to start";
-		tf.x = ((LW * 32) - (tf.textWidth * 2)) >> 1;
+		tf.x = ((LW * RATIO) - (tf.textWidth * 2)) >> 1;
 		tf.y = 180;
 	}
 	
@@ -72,24 +92,30 @@ class Game extends App
 		}
 		
 		if( !reload ) {
-			for( e in entities.copy() ) {
+			for( e in enemies.copy() ) {
 				e.remove();
 			}
 		}
+		
+		var enemy = db.Data.enemies.get(level.enemy.id);
+		var environmentPart = db.Data.envParts.get(level.envPartsId);
+		
 		while (bgLayer.numChildren > 0) {
-			bg.getChildAt(0).remove();
+			bgLayer.getChildAt(0).remove();
 		}
 		
 		var cdbLevel = new CdbLevel(db.Data.levels, currentLevel);
 		cdbLevel.redraw();
 		
+		
+		
 		bgLayer.clear();
-
-		var tile = Res.environment.nebula.toTile();
-		parts = new SpriteBatch(tile);
-		world.add(new Sprite(parts), LAYER_ENVP);
-		for( i in 0...10 )
-			parts.add(new EnvPart(tile));
+		
+		if (!reload) {
+			var x = Std.int(world.x / 2); 
+			var y = Std.int(world.y / 2);
+			player = new entities.Player(x, y);
+		}
 	}
 	
 	function onReload() {
@@ -103,7 +129,7 @@ class Game extends App
 			parts.visible = false;
 			//if( hero != null ) hero.remove();
 
-			var t = new h3d.mat.Texture(LW * 32, LH * 32, [Target]);
+			var t = new h3d.mat.Texture(LW * RATIO, LH * RATIO, [Target]);
 			var old = world.filter;
 			world.filter = null;
 			world.drawTo(t);
@@ -117,7 +143,6 @@ class Game extends App
 			initLevel();
 
 			world.add(bmpTrans, LAYER_ENT - 1);
-
 		},0);
 	}
 	
@@ -173,8 +198,8 @@ class EnvPart extends BatchElement {
 
 	public function new(t) {
 		super(t);
-		x = Math.random() * Game.LW * 32;
-		y = Math.random() * Game.LH * 32;
+		x = Math.random() * Game.LW * Game.RATIO;
+		y = Math.random() * Game.LH * Game.RATIO;
 		speed = 6 + Math.random() * 3;
 		rspeed = 0.02 * (1 + Math.random());
 	}

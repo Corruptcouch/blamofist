@@ -203,7 +203,7 @@
 			],
 			"lines": [
 				{
-					"id": "player",
+					"id": "Player",
 					"hp": 100,
 					"image": "952e66c2dd458cfd6e82052f7123a97b",
 					"projectile": "laser"

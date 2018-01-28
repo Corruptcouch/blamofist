@@ -1,7 +1,6 @@
 package entities;
 import h2d.Anim;
 import h2d.Tile;
-import hxd.Res;
 
 /**
  * ...
@@ -9,7 +8,6 @@ import hxd.Res;
  */
 class Entity 
 {
-
 	var enemyTile: Tile;
 	var game : Game;
 	public var x : Float;
@@ -18,17 +16,20 @@ class Entity
 	
 	public function new(x : Int, y: Int) 
 	{
-		enemyTile = Res.enemies.enemyShip.toTile();
 		game = Game.inst;
 		this.x = x + 0.5;
 		this.y = y + 0.5;
 		spr = new Anim([enemyTile, enemyTile], 15);
 		game.world.add(spr, Game.LAYER_ENT);
-		game.entities.push(this);
 	}
 	
 	public function remove() {
 		spr.remove();
-		game.entities.remove(this);
+	}
+	
+	
+	function update(dt: Float) {
+		spr.x = Std.int(x * 64) / 2;
+		spr.y = Std.int(y * 64) / 2;
 	}
 }
