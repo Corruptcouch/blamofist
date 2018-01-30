@@ -1,6 +1,9 @@
 package entities;
 import cdb.Data;
+import h2d.Anim;
+import h2d.Bitmap;
 import h2d.Graphics;
+import h2d.TileGroup;
 import hxd.Key;
 import hxd.Res;
 
@@ -21,35 +24,58 @@ class Player extends Entity
 
 	public var movingAmount : Float = 0.;
 	
-	var tag: Graphics;
+	var colX = -1;
+	var colY = -1;
+	var colTile : h2d.Tile;
+	var colView : h2d.TileGroup;
+	var colPlayer : Bitmap;
+	
 	var padActive : Bool;
 	
 	public function new(x, y) 
 	{
-		super(x, y);
+		super(Player, x, y);
+		colX = Std.int(this.x * 8);
+		colY = Std.int(this.y * 8);
+		colTile = Res.player.toTile();
+		colView = new TileGroup(colTile);
+		
+		var m = h3d.Matrix.I();
+		m._44 = 0.15;
+		colView.blendMode = Add;
+		colView.addShader(new h3d.shader.SinusDeform(20,0.005,3));
+		colView.filter = new h2d.filter.ColorMatrix(m);
+		
+		colPlayer = new h2d.Bitmap(colTile, colView);
+		spr.scale(0.25);
+		
+		game.world.add(colView, Game.LAYER_COL);
 		game.world.add(spr, Game.LAYER_HERO);
-		tag = new Graphics();
-		game.world.add(tag, Game.LAYER_ENT + 1);
-		tag.x = -1000;
-		tag.lineStyle(1, 0xFF0000);
-		tag.drawRect(0, 0, 32, 32);
 	}
 	
-	function getAnim() {
+	override function getAnim() {
+		var playerTile = Res.player.toTile();
+		var playerLeftTile = Res.playerLeft.toTile();
+		var playerRightTile = Res.playerRight.toTile();
+		
 		switch(dir) {
 		case Left:
-			return [Res.playerLeft.toTile()];
+			trace("animation left");
+			return [playerTile, playerLeftTile];
 		case Right:
-			return [Res.playerRight.toTile()];
+			trace("animation right");
+			return [playerTile, playerRightTile];
 		default:
 		}
-		return [Res.player.toTile()];
+		trace("default");
+		return [playerTile, playerTile];
 	}
 	
 	function set_dir(d) {
 		if( dir != d ) {
 			dir = d;
-			spr.play(getAnim(), spr.currentFrame);
+			var anim = getAnim();
+			spr.play(anim, spr.currentFrame);
 		}
 		return d;
 	}
@@ -74,6 +100,7 @@ class Player extends Entity
 			}
 		}
 		
+		// cancel
 		if( moving != null ) {
 			if( moving.dx < 0 ) {
 				if( right )
@@ -98,9 +125,9 @@ class Player extends Entity
 					moving.way = 1;
 			}
 		}	
-		if( moving != null ) {
+		if ( moving != null ) {
 			var prev = moving.k;
-
+			
 			movingAmount = dmove * moving.way;
 
 			moving.k += dmove * moving.way;
@@ -114,25 +141,59 @@ class Player extends Entity
 			}
 			x = moving.x + moving.dx * moving.k + 0.5;
 			y = moving.y + moving.dy * moving.k + 0.5;
-			if( dmove > 0 )
-				acc += dacc;
-			else
-				acc *= fric;
 			
-			if (end) {
-				var ix = Std.int(x), iy = Std.int(y);
+			if( dmove > 0 ) {
+				acc += dacc;
 			}
+			else {
+				acc *= fric;
+			}
+		
 			if (end) {
 				moving = null;
-			} else {
-				movingAmount = 0;
+			} 
+		} 
+		else {
+			movingAmount = 0;
+		}
+		
+		if( moving == null ) {
+			var updateLR = null;
+			var updateUD = null;
+
+			if( left || right ) {
+				//var nextY = Std.int(y);
+				//var nextX = Std.int(x) + (left ? -1 : 1);
+				//if( !game.isCollide(this, nextX, nextY) )
+					updateLR = function() moving = { x : Std.int(x), y : Std.int(y), k : 0, way : 1, dx : left ? -1 : 1, dy : 0 };
 			}
+
+			if( up || down ) {
+				//var nextX = Std.int(x);
+				//var nextY = Std.int(y) + (up ? -1 : 1);
+				//if( !game.isCollide(this, nextX, nextY) )
+					updateUD = function() moving = { x : Std.int(x), y : Std.int(y), k : 0, way : 1, dy : up ? -1 : 1, dx : 0 };
+			}
+
+			if( updateLR != null && updateUD != null ) {
+				if( Math.abs(game.gamePad.xAxis) > Math.abs(game.gamePad.yAxis) )
+					updateUD = null;
+				else
+					updateLR = null;
+			}
+
+			if( updateLR != null )
+				updateLR();
+			else if( updateUD != null )
+				updateUD();
+			else
+				acc *= fric * fric;
+
 		}
 	}
 	
-	override function update(dt:Float) {
+	public override function update(dt:Float) {
 		updateMove(dt);
-		
 		super.update(dt);
 		
 		if( moving != null ) {

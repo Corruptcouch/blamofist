@@ -1,6 +1,7 @@
 package;
 import entities.Player;
 import entities.Enemy;
+import entities.Entity;
 import h2d.CdbLevel;
 import h2d.Layers;
 import h2d.Sprite;
@@ -25,9 +26,10 @@ class Game extends App
 	public static var RATIO = 32;
 	
 	static var LAYER_BG = 0;
-	static var LAYER_ENT = 1;
-	static var LAYER_HERO = 2;
-	static var LAYER_ENVP = 3;
+	static var LAYER_COL = 1;
+	static var LAYER_ENT = 2;
+	static var LAYER_HERO = 3;
+	static var LAYER_ENVP = 4;
 	
 	public static var LW = 13;
 	public static var LH = 13;
@@ -35,14 +37,20 @@ class Game extends App
 	var currentLevel: Int;
 	var gamePad: Pad;
 	
-	var player : entities.Player;
-	
 	var bmpTrans : h2d.Bitmap;
 	var bg: Sprite;
 	var world: Layers;
 	var bgLayer: TileGroup;
-	var enemies: Array<Enemy> = [];
+	
+	var player : entities.Player;
+	
+	var enemyKind: db.Data.EnemiesKind;
+	var entities: Array<Entity> = [];
+	
+	var envPartKind: db.Data.EnvPartsKind;
 	var parts: SpriteBatch;
+	var way : Float = 1.;
+	
 	var level: db.Data.Levels;
 	
 	var title : h2d.Bitmap;
@@ -60,7 +68,7 @@ class Game extends App
 		bg.filter = new Blur(1, 3);
 		bg.filter.smooth = true;
 		
-		var tile = Res.environment.nebula.toTile();
+		var tile = Res.environment.starSmall.toTile();
 		parts = new SpriteBatch(tile);
 		world.add(new Sprite(parts), LAYER_ENVP);
 		for( i in 0...10 ) {
@@ -92,7 +100,7 @@ class Game extends App
 		}
 		
 		if( !reload ) {
-			for( e in enemies.copy() ) {
+			for( e in entities.copy() ) {
 				e.remove();
 			}
 		}
@@ -107,14 +115,14 @@ class Game extends App
 		var cdbLevel = new CdbLevel(db.Data.levels, currentLevel);
 		cdbLevel.redraw();
 		
-		
-		
 		bgLayer.clear();
 		
 		if (!reload) {
-			var x = Std.int(world.x / 2); 
-			var y = Std.int(world.y / 2);
+			var x = Std.int(LW * RATIO / 2); 
+			var y = Std.int(LH * RATIO / 2);
 			player = new entities.Player(x, y);
+			trace(player.x);
+			trace(player.y);
 		}
 	}
 	
@@ -127,7 +135,9 @@ class Game extends App
 		haxe.Timer.delay(function() {
 			bg.visible = false;
 			parts.visible = false;
-			//if( hero != null ) hero.remove();
+			if ( player != null ) {
+				player.remove(); 
+			}
 
 			var t = new h3d.mat.Texture(LW * RATIO, LH * RATIO, [Target]);
 			var old = world.filter;
@@ -147,7 +157,7 @@ class Game extends App
 	}
 	
 	override function update( dt : Float) {
-	
+				
 		if( bmpTrans != null ) {
 			bmpTrans.alpha -= 0.05 * dt;
 			if( bmpTrans.alpha < 0 ) {
@@ -155,6 +165,32 @@ class Game extends App
 				bmpTrans.remove();
 				bmpTrans = null;
 			}
+		}
+		
+		for ( e in entities.copy()) {
+			e.update(dt);
+		}
+		
+		var ang = -0.3;
+
+		var curWay = player != null && player.movingAmount < 0 ? player.movingAmount * 20 : 1;
+		way = hxd.Math.lerp(way, curWay, 1 - Math.pow(0.5, dt));
+		
+		parts.hasRotationScale = true;
+		for( p in parts.getElements() ) {
+			var p = cast(p, EnvPart);
+			var ds = dt * p.speed * way;
+			p.x += Math.cos(ang) * ds;
+			p.y += Math.sin(ang) * ds;
+			p.rotation += ds * p.rspeed;
+			if( p.x > LW * 32 )
+				p.x -= LW * 32;
+			if( p.y > LH * 32 )
+				p.y -= LH * 32;
+			if( p.y < 0 )
+				p.y += LH * 32;
+			if( p.x < 0 )
+				p.x += LW * 32;
 		}
 		
 		if( title != null && title.alpha < 1 )  {

@@ -1,5 +1,7 @@
 package entities;
+import h2d.Anim;
 import h2d.Graphics;
+import hxd.Res;
 
 /**
  * ...
@@ -8,35 +10,25 @@ import h2d.Graphics;
 class Enemy extends Entity
 {
 	var inf : db.Data.Enemies;
-	var kind : db.Data.EnemiesKind;
-
 	var acc = 0.;
 	var dir(default, set) : hxd.Direction;
 	
-	public var inventory : Array<Entity> = [];
 	var moving : { x : Int, y : Int, dx : Int, dy : Int, k : Float, way : Float };
 
 	public var movingAmount : Float = 0.;
 	
-	var tag: Graphics;
-	
-	public function new(x, y) 
+	public function new(x : Int, y: Int) 
 	{
-		super(x, y);
-		game.world.add(spr, Game.LAYER_ENT);
-		game.enemies.push(this);
-		tag = new Graphics();
-		game.world.add(tag, Game.LAYER_ENT + 1);
-		tag.x = -1000;
-		tag.lineStyle(1, 0xFF0000);
-		tag.drawRect(0, 0, 32, 32);		
+		super(Enemy, x, y);		
+		spr = new Anim(getAnim(), 15);
+		game.world.add(spr, Game.LAYER_ENT);	
 	}
 	
-	function getAnim() {
-		return [];
+	override function getAnim() {
+		return [Res.enemies.enemyShip.toTile()];
 	}
 	
-		function set_dir(d) {
+	function set_dir(d) {
 		if( dir != d ) {
 			dir = d;
 			spr.play(getAnim(), spr.currentFrame);
@@ -48,11 +40,7 @@ class Enemy extends Entity
 		
 	}
 	
-	override function remove() {
-		game.enemies.remove(this);
-	}
-	
-	override function update(dt:Float) {
+	public override function update(dt:Float) {
 		updateMove(dt);
 		
 		super.update(dt);
