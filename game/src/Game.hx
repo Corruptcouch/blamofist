@@ -1,13 +1,10 @@
 package;
 import entities.Player;
-import entities.Enemy;
 import entities.Entity;
 import h2d.CdbLevel;
 import h2d.Layers;
 import h2d.Sprite;
 import h2d.SpriteBatch;
-import h2d.SpriteBatch.BatchElement;
-import h2d.Tile;
 import h2d.TileGroup;
 import h2d.filter.Bloom;
 import h2d.filter.Blur;
@@ -29,7 +26,6 @@ class Game extends App
 	static var LAYER_COL = 1;
 	static var LAYER_ENT = 2;
 	static var LAYER_HERO = 3;
-	static var LAYER_ENVP = 4;
 	
 	public static var LW = 13;
 	public static var LH = 13;
@@ -53,7 +49,7 @@ class Game extends App
 	
 	var level: db.Data.Levels;
 	
-	var title : h2d.Bitmap;
+	var title : Title;
 	
 	override function init() {
 		s2d.setFixedSize(LW * RATIO, LH * RATIO);
@@ -67,13 +63,6 @@ class Game extends App
 		bg = new Sprite(world);
 		bg.filter = new Blur(1, 3);
 		bg.filter.smooth = true;
-		
-		var tile = Res.environment.starSmall.toTile();
-		parts = new SpriteBatch(tile);
-		world.add(new Sprite(parts), LAYER_ENVP);
-		for( i in 0...10 ) {
-			parts.add(new EnvPart(tile));
-		}
 
 		world.add(bgLayer, LAYER_BG);
 		
@@ -82,15 +71,7 @@ class Game extends App
 
 		Res.data.watch(onReload);
 		
-		title = new h2d.Bitmap(Res.background.red.toTile(), world);
-		title.scale(2);
-		
-		var tf = new h2d.Text(hxd.res.DefaultFont.get(), title);
-		tf.scale(0.5);
-		tf.textColor = 0xFFFFFF;
-		tf.text = "Press space / A to start";
-		tf.x = ((LW * RATIO) - (tf.textWidth * 2)) >> 1;
-		tf.y = 180;
+		title = new Title();
 	}
 	
 	function initLevel( ?reload ) {
@@ -105,9 +86,6 @@ class Game extends App
 			}
 		}
 		
-		var enemy = db.Data.enemies.get(level.enemy.id);
-		var environmentPart = db.Data.envParts.get(level.envPartsId);
-		
 		while (bgLayer.numChildren > 0) {
 			bgLayer.getChildAt(0).remove();
 		}
@@ -115,14 +93,10 @@ class Game extends App
 		var cdbLevel = new CdbLevel(db.Data.levels, currentLevel);
 		cdbLevel.redraw();
 		
-		bgLayer.clear();
-		
 		if (!reload) {
 			var x = Std.int(LW * RATIO / 2); 
 			var y = Std.int(LH * RATIO / 2);
 			player = new entities.Player(x, y);
-			trace(player.x);
-			trace(player.y);
 		}
 	}
 	
@@ -133,81 +107,30 @@ class Game extends App
 	
 	function nextLevel() {
 		haxe.Timer.delay(function() {
-			bg.visible = false;
-			parts.visible = false;
-			if ( player != null ) {
-				player.remove(); 
-			}
-
-			var t = new h3d.mat.Texture(LW * RATIO, LH * RATIO, [Target]);
-			var old = world.filter;
-			world.filter = null;
-			world.drawTo(t);
-			world.filter = old;
-			bmpTrans = new h2d.Bitmap(h2d.Tile.fromTexture(t));
-
-			bg.visible = true;
-			parts.visible = true;
-
 			currentLevel++;
 			initLevel();
-
-			world.add(bmpTrans, LAYER_ENT - 1);
 		},0);
 	}
 	
 	override function update( dt : Float) {
-				
-		if( bmpTrans != null ) {
-			bmpTrans.alpha -= 0.05 * dt;
-			if( bmpTrans.alpha < 0 ) {
-				bmpTrans.tile.getTexture().dispose();
-				bmpTrans.remove();
-				bmpTrans = null;
-			}
+		
+		if (player != null) {
+			player.update(dt);
 		}
-		
-		for ( e in entities.copy()) {
-			e.update(dt);
-		}
-		
-		var ang = -0.3;
-
-		var curWay = player != null && player.movingAmount < 0 ? player.movingAmount * 20 : 1;
-		way = hxd.Math.lerp(way, curWay, 1 - Math.pow(0.5, dt));
-		
-		parts.hasRotationScale = true;
-		for( p in parts.getElements() ) {
-			var p = cast(p, EnvPart);
-			var ds = dt * p.speed * way;
-			p.x += Math.cos(ang) * ds;
-			p.y += Math.sin(ang) * ds;
-			p.rotation += ds * p.rspeed;
-			if( p.x > LW * 32 )
-				p.x -= LW * 32;
-			if( p.y > LH * 32 )
-				p.y -= LH * 32;
-			if( p.y < 0 )
-				p.y += LH * 32;
-			if( p.x < 0 )
-				p.x += LW * 32;
-		}
-		
-		if( title != null && title.alpha < 1 )  {
-			title.alpha -= 0.01 * dt;
-			if( title.alpha < 0 ) {
+		if ( title != null && title.getAlpha() < 1 )  {
+			title.setAlpha(title.getAlpha() - (0.01 * dt));
+			if( title.getAlpha() < 0 ) {
 				title.remove();
-				title = null;
 			}
 		}
 
-
-		if( title != null && title.alpha == 1 ) {
-			if( Key.isPressed(Key.ESCAPE) )
+		if( title != null && title.getAlpha() == 1 ) {
+			if ( Key.isPressed(Key.ESCAPE) ) {
 				currentLevel = 0;
+			}
 			if( Key.isPressed(Key.ESCAPE) || Key.isPressed(Key.SPACE) || gamePad.isPressed(hxd.Pad.DEFAULT_CONFIG.A) || gamePad.isPressed(hxd.Pad.DEFAULT_CONFIG.B) ) {
 				currentLevel--;
-				title.alpha = 0.99;
+				title.setAlpha(0.99);
 				nextLevel();
 			}
 		}
@@ -224,19 +147,5 @@ class Game extends App
 		#end
 		Data.load(hxd.Res.data.entry.getText());
 		inst = new Game();
-	}
-}
-
-class EnvPart extends BatchElement {
-
-	public var speed : Float;
-	public var rspeed : Float;
-
-	public function new(t) {
-		super(t);
-		x = Math.random() * Game.LW * Game.RATIO;
-		y = Math.random() * Game.LH * Game.RATIO;
-		speed = 6 + Math.random() * 3;
-		rspeed = 0.02 * (1 + Math.random());
 	}
 }

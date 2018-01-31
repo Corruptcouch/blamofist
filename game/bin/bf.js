@@ -97,7 +97,6 @@ hxd_App.prototype = {
 	,__class__: hxd_App
 };
 var Game = function() {
-	this.way = 1.;
 	this.entities = [];
 	hxd_App.call(this);
 };
@@ -121,44 +120,13 @@ Game.prototype = $extend(hxd_App.prototype,{
 		this.bg = new h2d_Sprite(this.world);
 		this.bg.set_filter(new h2d_filter_Blur(1,3));
 		this.bg.filter.smooth = true;
-		var this2 = hxd_Res.get_loader();
-		var tile = this2.loadImage("environment/starSmall.png").toTile();
-		this.parts = new h2d_SpriteBatch(tile);
-		this.world.addChildAt(new h2d_Sprite(this.parts),Game.LAYER_ENVP);
-		var _g = 0;
-		while(_g < 10) {
-			var i = _g++;
-			this.parts.add(new EnvPart(tile));
-		}
 		this.world.addChildAt(this.bgLayer,Game.LAYER_BG);
 		this.gamePad = hxd_Pad.createDummy();
 		hxd_Pad.wait(function(p) {
 			_gthis.gamePad = p;
 		});
 		hxd_Res.get_loader().loadData("data.cdb").watch($bind(this,this.onReload));
-		var this3 = hxd_Res.get_loader();
-		this.title = new h2d_Bitmap(this3.loadImage("background/red.png").toTile(),this.world);
-		var _this = this.title;
-		var _g1 = _this;
-		_g1.posChanged = true;
-		_g1.scaleX *= 2;
-		var _g2 = _this;
-		_g2.posChanged = true;
-		_g2.scaleY *= 2;
-		var tf = new h2d_Text(hxd_res_DefaultFont.get(),this.title);
-		var _g3 = tf;
-		_g3.posChanged = true;
-		_g3.scaleX *= 0.5;
-		var _g4 = tf;
-		_g4.posChanged = true;
-		_g4.scaleY *= 0.5;
-		tf.set_textColor(16777215);
-		tf.set_text("Press space / A to start");
-		var v = Game.LW * Game.RATIO - tf.get_textWidth() * 2 >> 1;
-		tf.posChanged = true;
-		tf.x = v;
-		tf.posChanged = true;
-		tf.y = 180;
+		this.title = new Title();
 	}
 	,initLevel: function(reload) {
 		this.level = db_Data.levels.all[this.currentLevel];
@@ -174,25 +142,18 @@ Game.prototype = $extend(hxd_App.prototype,{
 				e.remove();
 			}
 		}
-		var _this = db_Data.enemies;
-		var k = db__$Data_Levels_$Impl_$.get_enemy(this.level).id;
-		var enemy = _this.byId.get(k);
-		var environmentPart = db_Data.envParts.byId.get(this.level.envParts);
 		while(this.bgLayer.children.length > 0) {
-			var _this1 = this.bgLayer.children[0];
-			if(_this1 != null && _this1.parent != null) {
-				_this1.parent.removeChild(_this1);
+			var _this = this.bgLayer.children[0];
+			if(_this != null && _this.parent != null) {
+				_this.parent.removeChild(_this);
 			}
 		}
 		var cdbLevel = new h2d_CdbLevel(db_Data.levels,this.currentLevel);
 		cdbLevel.redraw();
-		this.bgLayer.clear();
 		if(!reload) {
 			var x = Game.LW * Game.RATIO / 2 | 0;
 			var y = Game.LH * Game.RATIO / 2 | 0;
 			this.player = new entities_Player(x,y);
-			haxe_Log.trace(this.player.x,{ fileName : "Game.hx", lineNumber : 124, className : "Game", methodName : "initLevel"});
-			haxe_Log.trace(this.player.y,{ fileName : "Game.hx", lineNumber : 125, className : "Game", methodName : "initLevel"});
 		}
 	}
 	,onReload: function() {
@@ -202,132 +163,32 @@ Game.prototype = $extend(hxd_App.prototype,{
 	,nextLevel: function() {
 		var _gthis = this;
 		haxe_Timer.delay(function() {
-			_gthis.bg.set_visible(false);
-			_gthis.parts.set_visible(false);
-			if(_gthis.player != null) {
-				_gthis.player.remove();
-			}
-			var t = new h3d_mat_Texture(Game.LW * Game.RATIO,Game.LH * Game.RATIO,[h3d_mat_TextureFlags.Target]);
-			var old = _gthis.world.filter;
-			_gthis.world.set_filter(null);
-			_gthis.world.drawTo(t);
-			_gthis.world.set_filter(old);
-			var tmp = h2d_Tile.fromTexture(t);
-			_gthis.bmpTrans = new h2d_Bitmap(tmp);
-			_gthis.bg.set_visible(true);
-			_gthis.parts.set_visible(true);
 			_gthis.currentLevel++;
 			_gthis.initLevel();
-			_gthis.world.addChildAt(_gthis.bmpTrans,Game.LAYER_ENT - 1);
 		},0);
 	}
 	,update: function(dt) {
-		if(this.bmpTrans != null) {
-			this.bmpTrans.alpha -= 0.05 * dt;
-			if(this.bmpTrans.alpha < 0) {
-				this.bmpTrans.tile.innerTex.dispose();
-				var _this = this.bmpTrans;
-				if(_this != null && _this.parent != null) {
-					_this.parent.removeChild(_this);
-				}
-				this.bmpTrans = null;
+		if(this.player != null) {
+			this.player.update(dt);
+		}
+		if(this.title != null && this.title.getAlpha() < 1) {
+			this.title.setAlpha(this.title.getAlpha() - 0.01 * dt);
+			if(this.title.getAlpha() < 0) {
+				this.title.remove();
 			}
 		}
-		var _g = 0;
-		var _g1 = this.entities.slice();
-		while(_g < _g1.length) {
-			var e = _g1[_g];
-			++_g;
-			e.update(dt);
-		}
-		var ang = -0.3;
-		var curWay = this.player != null && this.player.movingAmount < 0 ? this.player.movingAmount * 20 : 1;
-		var a = this.way;
-		this.way = a + (1 - Math.pow(0.5,dt)) * (curWay - a);
-		this.parts.hasRotationScale = true;
-		var _g_e = this.parts.first;
-		while(_g_e != null) {
-			var n = _g_e;
-			_g_e = _g_e.next;
-			var p = n;
-			var p1 = js_Boot.__cast(p , EnvPart);
-			var ds = dt * p1.speed * this.way;
-			p1.x += Math.cos(ang) * ds;
-			p1.y += Math.sin(ang) * ds;
-			p1.rotation += ds * p1.rspeed;
-			if(p1.x > Game.LW * 32) {
-				p1.x -= Game.LW * 32;
-			}
-			if(p1.y > Game.LH * 32) {
-				p1.y -= Game.LH * 32;
-			}
-			if(p1.y < 0) {
-				p1.y += Game.LH * 32;
-			}
-			if(p1.x < 0) {
-				p1.x += Game.LW * 32;
-			}
-		}
-		if(this.title != null && this.title.alpha < 1) {
-			this.title.alpha -= 0.01 * dt;
-			if(this.title.alpha < 0) {
-				var _this1 = this.title;
-				if(_this1 != null && _this1.parent != null) {
-					_this1.parent.removeChild(_this1);
-				}
-				this.title = null;
-			}
-		}
-		if(this.title != null && this.title.alpha == 1) {
+		if(this.title != null && this.title.getAlpha() == 1) {
 			if(hxd_Key.isPressed(27)) {
 				this.currentLevel = 0;
 			}
 			if(hxd_Key.isPressed(27) || hxd_Key.isPressed(32) || this.gamePad.isPressed(hxd_Pad.DEFAULT_CONFIG.A) || this.gamePad.isPressed(hxd_Pad.DEFAULT_CONFIG.B)) {
 				this.currentLevel--;
-				this.title.alpha = 0.99;
+				this.title.setAlpha(0.99);
 				this.nextLevel();
 			}
 		}
 	}
 	,__class__: Game
-});
-var h2d_BatchElement = function(t) {
-	this.x = 0;
-	this.y = 0;
-	this.r = 1;
-	this.g = 1;
-	this.b = 1;
-	this.a = 1;
-	this.rotation = 0;
-	this.scaleX = this.scaleY = 1;
-	this.visible = true;
-	this.t = t;
-};
-$hxClasses["h2d.BatchElement"] = h2d_BatchElement;
-h2d_BatchElement.__name__ = ["h2d","BatchElement"];
-h2d_BatchElement.prototype = {
-	update: function(et) {
-		return true;
-	}
-	,remove: function() {
-		if(this.batch != null) {
-			this.batch["delete"](this);
-		}
-	}
-	,__class__: h2d_BatchElement
-};
-var EnvPart = function(t) {
-	h2d_BatchElement.call(this,t);
-	this.x = Math.random() * Game.LW * Game.RATIO;
-	this.y = Math.random() * Game.LH * Game.RATIO;
-	this.speed = 6 + Math.random() * 3;
-	this.rspeed = 0.02 * (1 + Math.random());
-};
-$hxClasses["EnvPart"] = EnvPart;
-EnvPart.__name__ = ["EnvPart"];
-EnvPart.__super__ = h2d_BatchElement;
-EnvPart.prototype = $extend(h2d_BatchElement.prototype,{
-	__class__: EnvPart
 });
 var HxOverrides = function() { };
 $hxClasses["HxOverrides"] = HxOverrides;
@@ -609,6 +470,52 @@ StringTools.hex = function(n,digits) {
 		while(s.length < digits) s = "0" + s;
 	}
 	return s;
+};
+var Title = function() {
+	this.game = Game.inst;
+	var this1 = hxd_Res.get_loader();
+	this.image = new h2d_Bitmap(this1.loadImage("background/red.png").toTile(),this.game.world);
+	var _this = this.image;
+	var _g = _this;
+	_g.posChanged = true;
+	_g.scaleX *= 2;
+	var _g1 = _this;
+	_g1.posChanged = true;
+	_g1.scaleY *= 2;
+	this.addText();
+};
+$hxClasses["Title"] = Title;
+Title.__name__ = ["Title"];
+Title.prototype = {
+	addText: function() {
+		var text = new h2d_Text(hxd_res_DefaultFont.get(),this.image);
+		var _g = text;
+		_g.posChanged = true;
+		_g.scaleX *= 0.5;
+		var _g1 = text;
+		_g1.posChanged = true;
+		_g1.scaleY *= 0.5;
+		text.set_textColor(16777215);
+		text.set_text("Press space / A to start");
+		var v = Game.LW * Game.RATIO - text.get_textWidth() * 2 >> 1;
+		text.posChanged = true;
+		text.x = v;
+		text.posChanged = true;
+		text.y = 180;
+	}
+	,getAlpha: function() {
+		return this.image.alpha;
+	}
+	,setAlpha: function(alpha) {
+		this.image.alpha = alpha;
+	}
+	,remove: function() {
+		var _this = this.image;
+		if(_this != null && _this.parent != null) {
+			_this.parent.removeChild(_this);
+		}
+	}
+	,__class__: Title
 };
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -1861,30 +1768,8 @@ $hxClasses["cdb.IndexId"] = cdb_IndexId;
 cdb_IndexId.__name__ = ["cdb","IndexId"];
 cdb_IndexId.__super__ = cdb_Index;
 cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
-	resolve: function(id,opt) {
-		if(id == null) {
-			return null;
-		}
-		var _this = this.byId;
-		var v = __map_reserved[id] != null ? _this.getReserved(id) : _this.h[id];
-		if(v == null && !opt) {
-			throw new js__$Boot_HaxeError("Missing " + this.name + "." + id);
-		} else {
-			return v;
-		}
-	}
-	,__class__: cdb_IndexId
+	__class__: cdb_IndexId
 });
-var db__$Data_Levels_$Impl_$ = {};
-$hxClasses["db._Data.Levels_Impl_"] = db__$Data_Levels_$Impl_$;
-db__$Data_Levels_$Impl_$.__name__ = ["db","_Data","Levels_Impl_"];
-db__$Data_Levels_$Impl_$.get_enemy = function(this1) {
-	if(this1.enemy == null) {
-		return null;
-	} else {
-		return db_Data.enemies.resolve(this1.enemy);
-	}
-};
 var db_Data = function() { };
 $hxClasses["db.Data"] = db_Data;
 db_Data.__name__ = ["db","Data"];
@@ -1898,65 +1783,26 @@ db_Data.load = function(content) {
 	db_Data.envParts = new cdb_IndexId(root,"envParts");
 };
 var entities_Entity = function(kind,x,y) {
-	this.kind = kind;
 	this.game = Game.inst;
 	this.x = x + 0.5;
 	this.y = y + 0.5;
-	this.spr = new h2d_Anim(this.getAnim(),15);
-	this.game.world.addChildAt(this.spr,Game.LAYER_ENT);
 	this.game.entities.push(this);
 };
 $hxClasses["entities.Entity"] = entities_Entity;
 entities_Entity.__name__ = ["entities","Entity"];
 entities_Entity.prototype = {
-	getAnim: function() {
-		return [hxd_Res.get_loader().loadImage("player.png").toTile()];
-	}
-	,remove: function() {
-		var _this = this.spr;
-		if(_this != null && _this.parent != null) {
-			_this.parent.removeChild(_this);
-		}
+	remove: function() {
 		HxOverrides.remove(this.game.entities,this);
-	}
-	,update: function(dt) {
-		var _this = this.spr;
-		_this.posChanged = true;
-		_this.x = (this.x * 64 | 0) / 2;
-		var _this1 = this.spr;
-		_this1.posChanged = true;
-		_this1.y = (this.y * 64 | 0) / 2;
-		haxe_Log.trace(this.toString(),{ fileName : "Entity.hx", lineNumber : 40, className : "entities.Entity", methodName : "update"});
-	}
-	,toString: function() {
-		return Std.string(this.kind) + "(" + (this.x | 0) + "," + (this.y | 0) + ")";
 	}
 	,__class__: entities_Entity
 };
 var entities_Player = function(x,y) {
 	this.colY = -1;
 	this.colX = -1;
-	this.movingAmount = 0.;
-	this.acc = 0.;
 	entities_Entity.call(this,entities_Player,x,y);
-	this.colX = this.x * 8 | 0;
-	this.colY = this.y * 8 | 0;
-	this.colTile = hxd_Res.get_loader().loadImage("player.png").toTile();
-	this.colView = new h2d_TileGroup(this.colTile);
-	var m = h3d_Matrix.I();
-	m._44 = 0.15;
-	this.colView.blendMode = h2d_BlendMode.Add;
-	this.colView.addShader(new h3d_shader_SinusDeform(20,0.005,3));
-	this.colView.set_filter(new h2d_filter_ColorMatrix(m));
-	this.colPlayer = new h2d_Bitmap(this.colTile,this.colView);
-	var _this = this.spr;
-	var _g = _this;
-	_g.posChanged = true;
-	_g.scaleX *= 0.25;
-	var _g1 = _this;
-	_g1.posChanged = true;
-	_g1.scaleY *= 0.25;
-	this.game.world.addChildAt(this.colView,Game.LAYER_COL);
+	this.colX = this.x * entities_Player.STEP | 0;
+	this.colY = this.y * entities_Player.STEP | 0;
+	this.spr = new h2d_Anim(this.getAnim(),15);
 	this.game.world.addChildAt(this.spr,Game.LAYER_HERO);
 };
 $hxClasses["entities.Player"] = entities_Player;
@@ -1967,140 +1813,40 @@ entities_Player.prototype = $extend(entities_Entity.prototype,{
 		var playerTile = hxd_Res.get_loader().loadImage("player.png").toTile();
 		var playerLeftTile = hxd_Res.get_loader().loadImage("playerLeft.png").toTile();
 		var playerRightTile = hxd_Res.get_loader().loadImage("playerRight.png").toTile();
-		var _g = this.dir;
-		switch(_g) {
-		case 4:
-			haxe_Log.trace("animation left",{ fileName : "Player.hx", lineNumber : 63, className : "entities.Player", methodName : "getAnim"});
-			return [playerTile,playerLeftTile];
-		case 6:
-			haxe_Log.trace("animation right",{ fileName : "Player.hx", lineNumber : 66, className : "entities.Player", methodName : "getAnim"});
-			return [playerTile,playerRightTile];
-		default:
-		}
-		haxe_Log.trace("default",{ fileName : "Player.hx", lineNumber : 70, className : "entities.Player", methodName : "getAnim"});
-		return [playerTile,playerTile];
-	}
-	,set_dir: function(d) {
-		if(this.dir != d) {
-			this.dir = d;
-			var anim = this.getAnim();
-			this.spr.play(anim,this.spr.curFrame);
-		}
-		return d;
+		return [playerLeftTile,playerTile,playerRightTile];
 	}
 	,updateMove: function(dt) {
-		var _gthis = this;
-		if(this.acc > 5) {
-			this.acc = 5;
-		}
-		var dacc = dt * 0.1;
-		var dmove = dt * 0.01 * (this.acc + 7);
-		var fric = Math.pow(0.8,dt);
 		var left = hxd_Key.isDown(37) || this.game.gamePad.xAxis < -0.5;
 		var right = hxd_Key.isDown(39) || this.game.gamePad.xAxis > 0.5;
 		var up = hxd_Key.isDown(38) || this.game.gamePad.yAxis < -0.5;
 		var down = hxd_Key.isDown(40) || this.game.gamePad.yAxis > 0.5;
-		if(this.game.gamePad.xAxis != 0 || this.game.gamePad.yAxis != 0) {
-			var k = Math.sqrt(this.game.gamePad.xAxis * this.game.gamePad.xAxis + this.game.gamePad.yAxis * this.game.gamePad.yAxis);
-			if(k > 0.5) {
-				this.padActive = true;
-			}
-			if(this.padActive) {
-				if(k < 0.5) {
-					k = 0.5;
-				}
-				dmove *= k;
-			}
+		if(left) {
+			var _g = this.spr;
+			_g.posChanged = true;
+			_g.x += entities_Player.STEP;
+			haxe_Log.trace("left",{ fileName : "Player.hx", lineNumber : 53, className : "entities.Player", methodName : "updateMove"});
 		}
-		if(this.moving != null) {
-			if(this.moving.dx < 0) {
-				if(right) {
-					this.moving.way = -1;
-				} else if(left) {
-					this.moving.way = 1;
-				}
-			} else if(this.moving.dx > 0) {
-				if(right) {
-					this.moving.way = 1;
-				} else if(left) {
-					this.moving.way = -1;
-				}
-			}
-			if(this.moving.dy < 0) {
-				if(up) {
-					this.moving.way = 1;
-				} else if(down) {
-					this.moving.way = -1;
-				}
-			} else if(this.moving.dy > 0) {
-				if(up) {
-					this.moving.way = -1;
-				} else if(down) {
-					this.moving.way = 1;
-				}
-			}
+		if(right) {
+			var _g1 = this.spr;
+			_g1.posChanged = true;
+			_g1.x -= entities_Player.STEP;
+			haxe_Log.trace("right",{ fileName : "Player.hx", lineNumber : 57, className : "entities.Player", methodName : "updateMove"});
 		}
-		if(this.moving != null) {
-			var prev = this.moving.k;
-			this.movingAmount = dmove * this.moving.way;
-			this.moving.k += dmove * this.moving.way;
-			var end = false;
-			if(this.moving.k >= 1) {
-				this.moving.k = 1;
-				end = true;
-			} else if(this.moving.k <= 0) {
-				this.moving.k = 0;
-				end = true;
-			}
-			this.x = this.moving.x + this.moving.dx * this.moving.k + 0.5;
-			this.y = this.moving.y + this.moving.dy * this.moving.k + 0.5;
-			if(dmove > 0) {
-				this.acc += dacc;
-			} else {
-				this.acc *= fric;
-			}
-			if(end) {
-				this.moving = null;
-			}
-		} else {
-			this.movingAmount = 0;
+		if(up) {
+			var _g2 = this.spr;
+			_g2.posChanged = true;
+			_g2.y += entities_Player.STEP;
+			haxe_Log.trace("up",{ fileName : "Player.hx", lineNumber : 61, className : "entities.Player", methodName : "updateMove"});
 		}
-		if(this.moving == null) {
-			var updateLR = null;
-			var updateUD = null;
-			if(left || right) {
-				updateLR = function() {
-					_gthis.moving = { x : _gthis.x | 0, y : _gthis.y | 0, k : 0, way : 1, dx : left ? -1 : 1, dy : 0};
-				};
-			}
-			if(up || down) {
-				updateUD = function() {
-					_gthis.moving = { x : _gthis.x | 0, y : _gthis.y | 0, k : 0, way : 1, dy : up ? -1 : 1, dx : 0};
-				};
-			}
-			if(updateLR != null && updateUD != null) {
-				if(Math.abs(this.game.gamePad.xAxis) > Math.abs(this.game.gamePad.yAxis)) {
-					updateUD = null;
-				} else {
-					updateLR = null;
-				}
-			}
-			if(updateLR != null) {
-				updateLR();
-			} else if(updateUD != null) {
-				updateUD();
-			} else {
-				this.acc *= fric * fric;
-			}
+		if(down) {
+			var _g3 = this.spr;
+			_g3.posChanged = true;
+			_g3.y -= entities_Player.STEP;
+			haxe_Log.trace("down",{ fileName : "Player.hx", lineNumber : 65, className : "entities.Player", methodName : "updateMove"});
 		}
 	}
 	,update: function(dt) {
 		this.updateMove(dt);
-		entities_Entity.prototype.update.call(this,dt);
-		if(this.moving != null) {
-			var m = this.moving;
-			this.set_dir(hxd__$Direction_Direction_$Impl_$.from(m.dx * m.way,m.dy * m.way));
-		}
 	}
 	,__class__: entities_Player
 });
@@ -3879,17 +3625,6 @@ h2d_Sprite.prototype = {
 			s.setParentContainer(c);
 		}
 	}
-	,drawTo: function(t) {
-		var s = this.getScene();
-		var needDispose = s == null;
-		if(s == null) {
-			s = new h2d_Scene();
-		}
-		s.drawImplTo(this,t);
-		if(needDispose) {
-			s.dispose();
-		}
-	}
 	,draw: function(ctx) {
 	}
 	,sync: function(ctx) {
@@ -4376,14 +4111,7 @@ $hxClasses["h2d.Drawable"] = h2d_Drawable;
 h2d_Drawable.__name__ = ["h2d","Drawable"];
 h2d_Drawable.__super__ = h2d_Sprite;
 h2d_Drawable.prototype = $extend(h2d_Sprite.prototype,{
-	addShader: function(s) {
-		if(s == null) {
-			throw new js__$Boot_HaxeError("Can't add null shader");
-		}
-		this.shaders = new hxsl_ShaderList(s,this.shaders);
-		return s;
-	}
-	,emitTile: function(ctx,tile) {
+	emitTile: function(ctx,tile) {
 		if(tile == null) {
 			tile = new h2d_Tile(null,0,0,5,5);
 		}
@@ -4407,22 +4135,7 @@ $hxClasses["h2d.Anim"] = h2d_Anim;
 h2d_Anim.__name__ = ["h2d","Anim"];
 h2d_Anim.__super__ = h2d_Drawable;
 h2d_Anim.prototype = $extend(h2d_Drawable.prototype,{
-	play: function(frames,atFrame) {
-		if(atFrame == null) {
-			atFrame = 0.;
-		}
-		this.frames = frames == null ? [] : frames;
-		this.set_currentFrame(atFrame);
-		this.pause = false;
-	}
-	,onAnimEnd: function() {
-	}
-	,set_currentFrame: function(frame) {
-		this.curFrame = this.frames.length == 0 ? 0 : frame % this.frames.length;
-		if(this.curFrame < 0) {
-			this.curFrame += this.frames.length;
-		}
-		return this.curFrame;
+	onAnimEnd: function() {
 	}
 	,getBoundsRec: function(relativeTo,out,forSize) {
 		h2d_Drawable.prototype.getBoundsRec.call(this,relativeTo,out,forSize);
@@ -5398,13 +5111,7 @@ $hxClasses["h2d.RenderContext"] = h2d_RenderContext;
 h2d_RenderContext.__name__ = ["h2d","RenderContext"];
 h2d_RenderContext.__super__ = h3d_impl_RenderContext;
 h2d_RenderContext.prototype = $extend(h3d_impl_RenderContext.prototype,{
-	dispose: function() {
-		this.textures.dispose();
-		if(this.fixedBuffer != null) {
-			this.fixedBuffer.dispose();
-		}
-	}
-	,begin: function() {
+	begin: function() {
 		this.texture = null;
 		this.currentObj = null;
 		this.bufPos = 0;
@@ -6155,27 +5862,8 @@ h2d_Scene.prototype = $extend(h2d_Layers.prototype,{
 			this.events.onRemove(i);
 		}
 	}
-	,dispose: function() {
-		if(this.allocated) {
-			this.onRemove();
-		}
-		this.ctx.dispose();
-	}
 	,setElapsedTime: function(v) {
 		this.ctx.elapsedTime = v;
-	}
-	,drawImplTo: function(s,t) {
-		if((t.flags & 1 << h3d_mat_TextureFlags.Target[1]) == 0) {
-			throw new js__$Boot_HaxeError("Can only draw to texture created with Target flag");
-		}
-		this.ctx.engine = h3d_Engine.CURRENT;
-		this.ctx.engine.begin();
-		this.ctx.globalAlpha = this.alpha;
-		this.ctx.begin();
-		this.ctx.pushTarget(t);
-		s.drawRec(this.ctx);
-		this.ctx.popTarget();
-		this.ctx.engine.frameCount--;
 	}
 	,render: function(engine) {
 		this.ctx.engine = engine;
@@ -6202,254 +5890,6 @@ h2d_Scene.prototype = $extend(h2d_Layers.prototype,{
 		h2d_Layers.prototype.sync.call(this,ctx);
 	}
 	,__class__: h2d_Scene
-});
-var h2d_SpriteBatch = function(t,parent) {
-	h2d_Drawable.call(this,parent);
-	this.tile = t;
-};
-$hxClasses["h2d.SpriteBatch"] = h2d_SpriteBatch;
-h2d_SpriteBatch.__name__ = ["h2d","SpriteBatch"];
-h2d_SpriteBatch.__super__ = h2d_Drawable;
-h2d_SpriteBatch.prototype = $extend(h2d_Drawable.prototype,{
-	add: function(e,before) {
-		if(before == null) {
-			before = false;
-		}
-		e.batch = this;
-		if(this.first == null) {
-			this.first = this.last = e;
-			e.prev = e.next = null;
-		} else if(before) {
-			e.prev = null;
-			e.next = this.first;
-			this.first.prev = e;
-			this.first = e;
-		} else {
-			this.last.next = e;
-			e.prev = this.last;
-			e.next = null;
-			this.last = e;
-		}
-		return e;
-	}
-	,'delete': function(e) {
-		if(e.prev == null) {
-			if(this.first == e) {
-				this.first = e.next;
-			}
-		} else {
-			e.prev.next = e.next;
-		}
-		if(e.next == null) {
-			if(this.last == e) {
-				this.last = e.prev;
-			}
-		} else {
-			e.next.prev = e.prev;
-		}
-		e.batch = null;
-	}
-	,sync: function(ctx) {
-		h2d_Drawable.prototype.sync.call(this,ctx);
-		if(this.hasUpdate) {
-			var e = this.first;
-			while(e != null) {
-				if(!e.update(ctx.elapsedTime)) {
-					e.remove();
-				}
-				e = e.next;
-			}
-		}
-		this.flush();
-	}
-	,getBoundsRec: function(relativeTo,out,forSize) {
-		h2d_Drawable.prototype.getBoundsRec.call(this,relativeTo,out,forSize);
-		var e = this.first;
-		while(e != null) {
-			var t = e.t;
-			if(this.hasRotationScale) {
-				var ca = Math.cos(e.rotation);
-				var sa = Math.sin(e.rotation);
-				var hx = t.width;
-				var hy = t.height;
-				var px = t.dx * e.scaleX;
-				var py = t.dy * e.scaleY;
-				var x;
-				var y;
-				x = px * ca - py * sa + e.x;
-				y = py * ca + px * sa + e.y;
-				this.addBounds(relativeTo,out,x,y,1e-10,1e-10);
-				var px1 = (t.dx + hx) * e.scaleX;
-				var py1 = t.dy * e.scaleY;
-				x = px1 * ca - py1 * sa + e.x;
-				y = py1 * ca + px1 * sa + e.y;
-				this.addBounds(relativeTo,out,x,y,1e-10,1e-10);
-				var px2 = t.dx * e.scaleX;
-				var py2 = (t.dy + hy) * e.scaleY;
-				x = px2 * ca - py2 * sa + e.x;
-				y = py2 * ca + px2 * sa + e.y;
-				this.addBounds(relativeTo,out,x,y,1e-10,1e-10);
-				var px3 = (t.dx + hx) * e.scaleX;
-				var py3 = (t.dy + hy) * e.scaleY;
-				x = px3 * ca - py3 * sa + e.x;
-				y = py3 * ca + px3 * sa + e.y;
-				this.addBounds(relativeTo,out,x,y,1e-10,1e-10);
-			} else {
-				this.addBounds(relativeTo,out,e.x + t.dx,e.y + t.dy,t.width,t.height);
-			}
-			e = e.next;
-		}
-	}
-	,flush: function() {
-		if(this.first == null) {
-			this.bufferVertices = 0;
-			return;
-		}
-		if(this.tmpBuf == null) {
-			var this1 = hxd__$FloatBuffer_Float32Expand_$Impl_$._new(0);
-			this.tmpBuf = this1;
-		}
-		var pos = 0;
-		var e = this.first;
-		var tmp = this.tmpBuf;
-		while(e != null) {
-			if(!e.visible) {
-				e = e.next;
-				continue;
-			}
-			var t = e.t;
-			var _g1 = tmp.pos;
-			var _g = pos + 32;
-			while(_g1 < _g) {
-				var i = _g1++;
-				if(tmp.pos == tmp.array.length) {
-					var newSize = tmp.array.length << 1;
-					if(newSize < 128) {
-						newSize = 128;
-					}
-					var newArray = new Float32Array(newSize);
-					newArray.set(tmp.array);
-					tmp.array = newArray;
-				}
-				tmp.array[tmp.pos++] = 0.;
-			}
-			if(this.hasRotationScale) {
-				var ca = Math.cos(e.rotation);
-				var sa = Math.sin(e.rotation);
-				var hx = t.width;
-				var hy = t.height;
-				var px = t.dx * e.scaleX;
-				var py = t.dy * e.scaleY;
-				tmp.array[pos++] = px * ca - py * sa + e.x;
-				tmp.array[pos++] = py * ca + px * sa + e.y;
-				tmp.array[pos++] = t.u;
-				tmp.array[pos++] = t.v;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				var px1 = (t.dx + hx) * e.scaleX;
-				var py1 = t.dy * e.scaleY;
-				tmp.array[pos++] = px1 * ca - py1 * sa + e.x;
-				tmp.array[pos++] = py1 * ca + px1 * sa + e.y;
-				tmp.array[pos++] = t.u2;
-				tmp.array[pos++] = t.v;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				var px2 = t.dx * e.scaleX;
-				var py2 = (t.dy + hy) * e.scaleY;
-				tmp.array[pos++] = px2 * ca - py2 * sa + e.x;
-				tmp.array[pos++] = py2 * ca + px2 * sa + e.y;
-				tmp.array[pos++] = t.u;
-				tmp.array[pos++] = t.v2;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				var px3 = (t.dx + hx) * e.scaleX;
-				var py3 = (t.dy + hy) * e.scaleY;
-				tmp.array[pos++] = px3 * ca - py3 * sa + e.x;
-				tmp.array[pos++] = py3 * ca + px3 * sa + e.y;
-				tmp.array[pos++] = t.u2;
-				tmp.array[pos++] = t.v2;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-			} else {
-				var sx = e.x + t.dx;
-				var sy = e.y + t.dy;
-				tmp.array[pos++] = sx;
-				tmp.array[pos++] = sy;
-				tmp.array[pos++] = t.u;
-				tmp.array[pos++] = t.v;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				tmp.array[pos++] = sx + t.width + 0.1;
-				tmp.array[pos++] = sy;
-				tmp.array[pos++] = t.u2;
-				tmp.array[pos++] = t.v;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				tmp.array[pos++] = sx;
-				tmp.array[pos++] = sy + t.height + 0.1;
-				tmp.array[pos++] = t.u;
-				tmp.array[pos++] = t.v2;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-				tmp.array[pos++] = sx + t.width + 0.1;
-				tmp.array[pos++] = sy + t.height + 0.1;
-				tmp.array[pos++] = t.u2;
-				tmp.array[pos++] = t.v2;
-				tmp.array[pos++] = e.r;
-				tmp.array[pos++] = e.g;
-				tmp.array[pos++] = e.b;
-				tmp.array[pos++] = e.a;
-			}
-			e = e.next;
-		}
-		this.bufferVertices = pos >> 3;
-		if(this.buffer != null && !this.buffer.isDisposed()) {
-			if(this.buffer.vertices >= this.bufferVertices) {
-				this.buffer.uploadVector(this.tmpBuf,0,this.bufferVertices);
-				return;
-			}
-			this.buffer.dispose();
-			this.buffer = null;
-		}
-		if(this.bufferVertices > 0) {
-			this.buffer = h3d_Buffer.ofSubFloats(this.tmpBuf,8,this.bufferVertices,[h3d_BufferFlag.Dynamic,h3d_BufferFlag.Quads,h3d_BufferFlag.RawFormat]);
-		}
-	}
-	,draw: function(ctx) {
-		this.drawWith(ctx,this);
-	}
-	,drawWith: function(ctx,obj) {
-		if(this.first == null || this.buffer == null || this.buffer.isDisposed() || this.bufferVertices == 0) {
-			return;
-		}
-		if(!ctx.beginDrawObject(obj,this.tile.innerTex)) {
-			return;
-		}
-		var _this = ctx.engine;
-		_this.renderBuffer(this.buffer,_this.mem.quadIndexes,2,0,this.bufferVertices >> 1);
-	}
-	,onRemove: function() {
-		h2d_Drawable.prototype.onRemove.call(this);
-		if(this.buffer != null) {
-			this.buffer.dispose();
-			this.buffer = null;
-		}
-	}
-	,__class__: h2d_SpriteBatch
 });
 var h2d_Align = $hxClasses["h2d.Align"] = { __ename__ : true, __constructs__ : ["Left","Right","Center"] };
 h2d_Align.Left = ["Left",0];
@@ -7321,12 +6761,6 @@ h2d__$TileGroup_TileLayerContent.prototype = $extend(h3d_prim_Primitive.prototyp
 	}
 	,__class__: h2d__$TileGroup_TileLayerContent
 });
-var h2d_col_Matrix = function() { };
-$hxClasses["h2d.col.Matrix"] = h2d_col_Matrix;
-h2d_col_Matrix.__name__ = ["h2d","col","Matrix"];
-h2d_col_Matrix.prototype = {
-	__class__: h2d_col_Matrix
-};
 var h2d_col_Point = function(x,y) {
 	if(y == null) {
 		y = 0.;
@@ -7441,24 +6875,6 @@ h2d_filter_Bloom.prototype = $extend(h2d_filter_Blur.prototype,{
 	}
 	,__class__: h2d_filter_Bloom
 });
-var h2d_filter_ColorMatrix = function(m) {
-	h2d_filter_Filter.call(this);
-	this.pass = new h3d_pass_ColorMatrix(m);
-	var _this = this.pass.shader;
-	_this.constModified = true;
-	_this.useAlpha__ = true;
-};
-$hxClasses["h2d.filter.ColorMatrix"] = h2d_filter_ColorMatrix;
-h2d_filter_ColorMatrix.__name__ = ["h2d","filter","ColorMatrix"];
-h2d_filter_ColorMatrix.__super__ = h2d_filter_Filter;
-h2d_filter_ColorMatrix.prototype = $extend(h2d_filter_Filter.prototype,{
-	draw: function(ctx,t) {
-		var tout = ctx.textures.allocTarget("colorMatrixOut",ctx,t.width,t.height,false);
-		this.pass.apply(t.innerTex,tout);
-		return h2d_Tile.fromTexture(tout);
-	}
-	,__class__: h2d_filter_ColorMatrix
-});
 var h3d_BufferFlag = $hxClasses["h3d.BufferFlag"] = { __ename__ : true, __constructs__ : ["Dynamic","Triangles","Quads","Managed","RawFormat","NoAlloc"] };
 h3d_BufferFlag.Dynamic = ["Dynamic",0];
 h3d_BufferFlag.Dynamic.toString = $estr;
@@ -7502,11 +6918,6 @@ h3d_Buffer.ofFloats = function(v,stride,flags,allocPos) {
 	var nvert = v.pos / stride | 0;
 	var b = new h3d_Buffer(nvert,stride,flags,allocPos);
 	b.uploadVector(v,0,nvert);
-	return b;
-};
-h3d_Buffer.ofSubFloats = function(v,stride,vertices,flags,allocPos) {
-	var b = new h3d_Buffer(vertices,stride,flags,allocPos);
-	b.uploadVector(v,0,vertices);
 	return b;
 };
 h3d_Buffer.prototype = {
@@ -8119,11 +7530,6 @@ var h3d_Matrix = function() {
 };
 $hxClasses["h3d.Matrix"] = h3d_Matrix;
 h3d_Matrix.__name__ = ["h3d","Matrix"];
-h3d_Matrix.I = function() {
-	var m = new h3d_Matrix();
-	m.identity();
-	return m;
-};
 h3d_Matrix.prototype = {
 	zero: function() {
 		this._11 = 0.0;
@@ -10156,17 +9562,6 @@ h3d_impl_TextureCache.prototype = {
 		this.position++;
 		return t;
 	}
-	,dispose: function() {
-		var _g = 0;
-		var _g1 = this.cache;
-		while(_g < _g1.length) {
-			var t = _g1[_g];
-			++_g;
-			t.dispose();
-		}
-		this.cache = [];
-		this.frame = -1;
-	}
 	,__class__: h3d_impl_TextureCache
 };
 var h3d_mat_BaseMaterial = function() { };
@@ -11658,130 +11053,6 @@ h3d_shader_ScreenShader.prototype = $extend(hxsl_Shader.prototype,{
 		return 0.;
 	}
 	,__class__: h3d_shader_ScreenShader
-});
-var h3d_pass_ColorMatrixShader = function() {
-	this.maskChannel__ = new h3d_Vector();
-	this.maskPower__ = 0;
-	this.maskMatB__ = new h3d_Vector();
-	this.maskMatA__ = new h3d_Vector();
-	this.matrix2__ = new h3d_Matrix();
-	this.matrix__ = new h3d_Matrix();
-	h3d_shader_ScreenShader.call(this);
-};
-$hxClasses["h3d.pass.ColorMatrixShader"] = h3d_pass_ColorMatrixShader;
-h3d_pass_ColorMatrixShader.__name__ = ["h3d","pass","ColorMatrixShader"];
-h3d_pass_ColorMatrixShader.__super__ = h3d_shader_ScreenShader;
-h3d_pass_ColorMatrixShader.prototype = $extend(h3d_shader_ScreenShader.prototype,{
-	updateConstants: function(globals) {
-		this.constBits = 0;
-		if(this.useAlpha__) {
-			this.constBits |= 1;
-		}
-		if(this.useMask__) {
-			this.constBits |= 2;
-		}
-		if(this.maskInvert__) {
-			this.constBits |= 4;
-		}
-		if(this.hasSecondMatrix__) {
-			this.constBits |= 8;
-		}
-		this.updateConstantsFinal(globals);
-	}
-	,getParamValue: function(index) {
-		switch(index) {
-		case 0:
-			return this.texture__;
-		case 1:
-			return this.matrix__;
-		case 2:
-			return this.useAlpha__;
-		case 3:
-			return this.useMask__;
-		case 4:
-			return this.maskInvert__;
-		case 5:
-			return this.hasSecondMatrix__;
-		case 6:
-			return this.matrix2__;
-		case 7:
-			return this.mask__;
-		case 8:
-			return this.maskMatA__;
-		case 9:
-			return this.maskMatB__;
-		case 10:
-			return this.maskPower__;
-		case 11:
-			return this.maskChannel__;
-		default:
-		}
-		return null;
-	}
-	,getParamFloatValue: function(index) {
-		if(index == 10) {
-			return this.maskPower__;
-		}
-		return 0.;
-	}
-	,__class__: h3d_pass_ColorMatrixShader
-});
-var h3d_pass_ColorMatrix = function(m) {
-	h3d_pass_ScreenFx.call(this,new h3d_pass_ColorMatrixShader());
-	if(m != null) {
-		this.shader.matrix__ = m;
-	} else {
-		this.shader.matrix__.identity();
-	}
-	this.shader.maskPower__ = 1;
-	var _this = this.shader.maskChannel__;
-	_this.x = 1;
-	_this.y = 0;
-	_this.z = 0;
-	_this.w = 0;
-};
-$hxClasses["h3d.pass.ColorMatrix"] = h3d_pass_ColorMatrix;
-h3d_pass_ColorMatrix.__name__ = ["h3d","pass","ColorMatrix"];
-h3d_pass_ColorMatrix.__super__ = h3d_pass_ScreenFx;
-h3d_pass_ColorMatrix.prototype = $extend(h3d_pass_ScreenFx.prototype,{
-	apply: function(src,out,mask,maskMatrix) {
-		this.engine.pushTarget(out);
-		this.shader.texture__ = src;
-		var _this = this.shader;
-		_this.constModified = true;
-		_this.useMask__ = mask != null;
-		if(mask != null) {
-			this.shader.mask__ = mask;
-			if(maskMatrix == null) {
-				var _this1 = this.shader.maskMatA__;
-				_this1.x = 1;
-				_this1.y = 0;
-				_this1.z = 0;
-				_this1.w = 1.;
-				var _this2 = this.shader.maskMatB__;
-				_this2.x = 0;
-				_this2.y = 1;
-				_this2.z = 0;
-				_this2.w = 1.;
-			} else {
-				var _this3 = this.shader.maskMatA__;
-				var z = maskMatrix.x;
-				_this3.x = maskMatrix.a;
-				_this3.y = maskMatrix.c;
-				_this3.z = z;
-				_this3.w = 1.;
-				var _this4 = this.shader.maskMatB__;
-				var z1 = maskMatrix.y;
-				_this4.x = maskMatrix.b;
-				_this4.y = maskMatrix.d;
-				_this4.z = z1;
-				_this4.w = 1.;
-			}
-		}
-		this.render();
-		this.engine.popTarget();
-	}
-	,__class__: h3d_pass_ColorMatrix
 });
 var h3d_pass__$Copy_CopyShader = function() {
 	h3d_shader_ScreenShader.call(this);
@@ -15469,58 +14740,6 @@ h3d_shader_Shadow.prototype = $extend(hxsl_Shader.prototype,{
 	}
 	,__class__: h3d_shader_Shadow
 });
-var h3d_shader_SinusDeform = function(frequency,amplitude,speed) {
-	if(speed == null) {
-		speed = 1.;
-	}
-	if(amplitude == null) {
-		amplitude = 0.01;
-	}
-	if(frequency == null) {
-		frequency = 10.;
-	}
-	this.amplitude__ = 0;
-	this.frequency__ = 0;
-	this.speed__ = 0;
-	hxsl_Shader.call(this);
-	this.frequency__ = frequency;
-	this.amplitude__ = amplitude;
-	this.speed__ = speed;
-};
-$hxClasses["h3d.shader.SinusDeform"] = h3d_shader_SinusDeform;
-h3d_shader_SinusDeform.__name__ = ["h3d","shader","SinusDeform"];
-h3d_shader_SinusDeform.__super__ = hxsl_Shader;
-h3d_shader_SinusDeform.prototype = $extend(hxsl_Shader.prototype,{
-	updateConstants: function(globals) {
-		this.constBits = 0;
-		this.updateConstantsFinal(globals);
-	}
-	,getParamValue: function(index) {
-		switch(index) {
-		case 0:
-			return this.speed__;
-		case 1:
-			return this.frequency__;
-		case 2:
-			return this.amplitude__;
-		default:
-		}
-		return null;
-	}
-	,getParamFloatValue: function(index) {
-		switch(index) {
-		case 0:
-			return this.speed__;
-		case 1:
-			return this.frequency__;
-		case 2:
-			return this.amplitude__;
-		default:
-		}
-		return 0.;
-	}
-	,__class__: h3d_shader_SinusDeform
-});
 var h3d_shader_Skin = function() {
 	this.bonesMatrixes__ = [];
 	this.MaxBones__ = 0;
@@ -18784,21 +18003,6 @@ hxd_Cursor.__empty_constructs__ = [hxd_Cursor.Default,hxd_Cursor.Button,hxd_Curs
 var hxd_CustomCursor = function() { };
 $hxClasses["hxd.CustomCursor"] = hxd_CustomCursor;
 hxd_CustomCursor.__name__ = ["hxd","CustomCursor"];
-var hxd__$Direction_Direction_$Impl_$ = {};
-$hxClasses["hxd._Direction.Direction_Impl_"] = hxd__$Direction_Direction_$Impl_$;
-hxd__$Direction_Direction_$Impl_$.__name__ = ["hxd","_Direction","Direction_Impl_"];
-hxd__$Direction_Direction_$Impl_$.from = function(x,y) {
-	if(x != 0 && y != 0) {
-		if((x < 0 ? -x : x) > (y < 0 ? -y : y)) {
-			y = 0;
-		} else {
-			x = 0;
-		}
-	}
-	var ix = x < 0 ? -1 : x > 0 ? 1 : 0;
-	var iy = y < 0 ? -1 : y > 0 ? 1 : 0;
-	return ix + 1 | iy + 1 << 2;
-};
 var hxd_EventKind = $hxClasses["hxd.EventKind"] = { __ename__ : true, __constructs__ : ["EPush","ERelease","EMove","EOver","EOut","EWheel","EFocus","EFocusLost","EKeyDown","EKeyUp","EReleaseOutside","ETextInput","ECheck"] };
 hxd_EventKind.EPush = ["EPush",0];
 hxd_EventKind.EPush.toString = $estr;
@@ -26477,13 +25681,6 @@ js_Boot.__instanceof = function(o,cl) {
 		return o.__enum__ == cl;
 	}
 };
-js_Boot.__cast = function(o,t) {
-	if(js_Boot.__instanceof(o,t)) {
-		return o;
-	} else {
-		throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
-	}
-};
 js_Boot.__nativeClassName = function(o) {
 	var name = js_Boot.__toStr.call(o).slice(8,-1);
 	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") {
@@ -30047,10 +29244,7 @@ var Float32Array = $global.Float32Array || js_html_compat_Float32Array._new;
 var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
 Game.RATIO = 32;
 Game.LAYER_BG = 0;
-Game.LAYER_COL = 1;
-Game.LAYER_ENT = 2;
 Game.LAYER_HERO = 3;
-Game.LAYER_ENVP = 4;
 Game.LW = 13;
 Game.LH = 13;
 Xml.Element = 0;
@@ -30060,6 +29254,7 @@ Xml.Comment = 3;
 Xml.DocType = 4;
 Xml.ProcessingInstruction = 5;
 Xml.Document = 6;
+entities_Player.STEP = 8;
 h3d_Buffer.GUID = 0;
 h3d_impl_GlDriver.TFILTERS = [[[9728,9728],[9729,9729]],[[9728,9984],[9729,9985]],[[9728,9986],[9729,9987]]];
 h3d_impl_GlDriver.TWRAP = [33071,10497];
@@ -30097,31 +29292,29 @@ h3d_mat_Texture.nativeFormat = hxd_PixelFormat.RGBA;
 h3d_mat_Texture.nativeFlip = false;
 h3d_mat_Texture.noiseTextureKeys = new haxe_ds_IntMap();
 h3d_pass_Blur.__meta__ = { obj : { ignore : ["shader"]}, fields : { quality : { range : [1,4,1], inspect : null}, sigma : { range : [0,2], inspect : null}, passes : { range : [0,5,1], inspect : null}}};
-h3d_pass__$Border_BorderShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-349ghR16i-347gR16i-348gy1:poy4:filey77:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FBorder.hxy3:maxi295y3:mini280gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i302R21i298gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29hR16i-345gR16i-346gR17oR18R19R20i317R21i303gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i320R21i319gR22jR11:3:0goR3jR4:0:1jR25:3:1i1R17oR18R19R20i323R21i322gR22r41ghR17oR18R19R20i324R21i298gR22jR11:5:2i4r11gR17oR18R19R20i324R21i280gR22r12ghR17oR18R19R20i330R21i274gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr53ghR16i-350gR29r53goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r15R17oR18R19R20i374R21i362gR22r16goR3jR4:1:1oR6jR7:2:0R8R15R10jR11:5:2i4r11R16i-344gR17oR18R19R20i382R21i377gR22r72gR17oR18R19R20i382R21i362gR22r16ghR17oR18R19R20i388R21i356gR22r53gR6jR26:1:0R27oR6r56R8y8:fragmentR10jR11:13:1aoR1ahR29r53ghR16i-351gR29r53ghR8y29:h3d.pass._Border.BorderShadery4:varsar70r32r13r55r80hg";
+h3d_pass__$Border_BorderShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-316ghR16i-314gR16i-315gy1:poy4:filey77:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FBorder.hxy3:maxi295y3:mini280gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i302R21i298gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29hR16i-312gR16i-313gR17oR18R19R20i317R21i303gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i320R21i319gR22jR11:3:0goR3jR4:0:1jR25:3:1i1R17oR18R19R20i323R21i322gR22r41ghR17oR18R19R20i324R21i298gR22jR11:5:2i4r11gR17oR18R19R20i324R21i280gR22r12ghR17oR18R19R20i330R21i274gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr53ghR16i-317gR29r53goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r15R17oR18R19R20i374R21i362gR22r16goR3jR4:1:1oR6jR7:2:0R8R15R10jR11:5:2i4r11R16i-311gR17oR18R19R20i382R21i377gR22r72gR17oR18R19R20i382R21i362gR22r16ghR17oR18R19R20i388R21i356gR22r53gR6jR26:1:0R27oR6r56R8y8:fragmentR10jR11:13:1aoR1ahR29r53ghR16i-318gR29r53ghR8y29:h3d.pass._Border.BorderShadery4:varsar70r32r13r55r80hg";
 h3d_shader_ScreenShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-153ghR16i-151gR16i-152gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-150ghR16i-148gR16i-149gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-154gR30r55ghR8y23:h3d.shader.ScreenShadery4:varsar32r13r57hg";
-h3d_pass_ColorMatrixShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-291ghR16i-289gR16i-290gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-288ghR16i-286gR16i-287gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-304gR30r55goR1aoR6r10R8R15R10jR11:5:2i4r11R16i-305goR6r10R8y3:matR10jR11:7:0R16i-306ghR2oR3jR4:4:1aoR3jR4:12:1oR3jR4:10:3oR3jR4:1:1oR6jR7:2:0R8y8:useAlphaR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR16i-294gR17oR18y82:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FColorMatrix.hxR20i680R21i672gR22r76goR3jR4:5:3jR5:1:0oR3jR4:1:1r65R17oR18R35R20i688R21i683gR22r66goR3jR4:1:1r67R17oR18R35R20i694R21i691gR22r68gR17oR18R35R20i694R21i683gR22jR11:5:2i4r11goR3jR4:5:3r82oR3jR4:8:2oR3jR4:2:1r22R17oR18R35R20i701R21i697gR22r26gaoR3jR4:9:2oR3jR4:1:1r65R17oR18R35R20i707R21i702gR22r66gajy14:hxsl.Component:0:0jR36:1:0jR36:2:0hR17oR18R35R20i711R21i702gR22jR11:5:2i3r11goR3jR4:0:1jR26:3:1d1R17oR18R35R20i715R21i713gR22r43ghR17oR18R35R20i716R21i697gR22jR11:5:2i4r11goR3jR4:1:1r67R17oR18R35R20i722R21i719gR22r68gR17oR18R35R20i722R21i697gR22r91gR17oR18R35R20i722R21i672gR22r91gR17oR18R35R20i722R21i665gR22r55ghR17oR18R35R20i728R21i548gR22r55gR6jR27:3:0R28oR6r58R8y5:applyR10jR11:13:1aoR1aoR8R15R10r66goR8R31R10r68ghR30jR11:5:2i4r11ghR16i-307gR30r134goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:1:1oR6r75R8y7:useMaskR10r76R33ajR34:0:1nhR16i-295gR17oR18R35R20i771R21i764gR22r76goR3jR4:4:1aoR3jR4:7:2oR6r10R8R15R10r91R16i-309goR3jR4:8:2oR3jR4:2:1jR23:33:0R17oR18R35R20i800R21i793gR22jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R25R10jR11:5:2i2r11ghR30r91ghgaoR3jR4:1:1oR6r75R8y7:textureR10r160R16i-292gR17oR18R35R20i800R21i793gR22r160goR3jR4:1:1r34R17oR18R35R20i813R21i805gR22r35ghR17oR18R35R20i814R21i793gR22r91gR17oR18R35R20i815R21i781gR22r55goR3jR4:7:2oR6r10R8R25R10jR11:5:2i3r11R16i-310goR3jR4:8:2oR3jR4:2:1jR23:39:0R17oR18R35R20i834R21i830gR22jR11:13:1ahgaoR3jR4:1:1r34R17oR18R35R20i843R21i835gR22r35goR3jR4:0:1jR26:3:1i1R17oR18R35R20i846R21i845gR22r43ghR17oR18R35R20i847R21i830gR22r178gR17oR18R35R20i848R21i821gR22r55goR3jR4:7:2oR6r10R8y1:kR10r43R16i-311goR3jR4:8:2oR3jR4:2:1jR23:8:0R17oR18R35R20i865R21i862gR22jR11:13:1aoR1aoR8y1:aR10r43goR8y1:bR10r43ghR30r43ghgaoR3jR4:8:2oR3jR4:2:1jR23:29:0R17oR18R35R20i918R21i866gR22jR11:13:1aoR1aoR8R39R10r91goR8R43R10r91ghR30r43ghgaoR3jR4:8:2oR3jR4:2:1r153R17oR18R35R20i870R21i866gR22jR11:13:1aoR1aoR8R39R10r160gr161hR30r91ghgaoR3jR4:1:1oR6r75R8y4:maskR10r160R16i-299gR17oR18R35R20i870R21i866gR22r160goR3jR4:8:2oR3jR4:2:1jR23:38:0R17oR18R35R20i880R21i876gR22jR11:13:1ahgaoR3jR4:8:2oR3jR4:2:1r214R17oR18R35R20i883R21i881gR22jR11:13:1aoR1aoR8R39R10r178goR8R43R10jR11:5:2i3r11ghR30r43ghgaoR3jR4:1:1r177R17oR18R35R20i883R21i881gR22r178goR3jR4:1:1oR6r75R8y8:maskMatAR10jR11:5:2i3r11R16i-300gR17oR18R35R20i896R21i888gR22r263ghR17oR18R35R20i897R21i881gR22r43goR3jR4:8:2oR3jR4:2:1r214R17oR18R35R20i901R21i899gR22jR11:13:1aoR1aoR8R39R10r178gr254hR30r43ghgaoR3jR4:1:1r177R17oR18R35R20i901R21i899gR22r178goR3jR4:1:1oR6r75R8y8:maskMatBR10jR11:5:2i3r11R16i-301gR17oR18R35R20i914R21i906gR22r283ghR17oR18R35R20i915R21i899gR22r43ghR17oR18R35R20i916R21i876gR22jR11:5:2i2r11ghR17oR18R35R20i918R21i866gR22r91goR3jR4:1:1oR6r75R8y11:maskChannelR10jR11:5:2i4r11R16i-303gR17oR18R35R20i934R21i923gR22r295ghR17oR18R35R20i935R21i866gR22r43goR3jR4:1:1oR6r75R8y9:maskPowerR10r43R16i-302gR17oR18R35R20i946R21i937gR22r43ghR17oR18R35R20i947R21i862gR22r43gR17oR18R35R20i948R21i854gR22r55goR3jR4:7:2oR6r10R8y6:color2R10r134R16i-312goR3jR4:10:3oR3jR4:1:1oR6r75R8y15:hasSecondMatrixR10r76R33ajR34:0:1nhR16i-297gR17oR18R35R20i982R21i967gR22r76goR3jR4:8:2oR3jR4:1:1r128R17oR18R35R20i990R21i985gR22r135gaoR3jR4:1:1r150R17oR18R35R20i996R21i991gR22r91goR3jR4:1:1oR6r75R8y7:matrix2R10r68R16i-298gR17oR18R35R20i1004R21i997gR22r68ghR17oR18R35R20i1005R21i985gR22r134goR3jR4:1:1r150R17oR18R35R20i1013R21i1008gR22r91gR17oR18R35R20i1013R21i967gR22r134gR17oR18R35R20i1014R21i954gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R35R20i1032R21i1020gR22r16goR3jR4:10:3oR3jR4:1:1oR6r75R8y10:maskInvertR10r76R33ajR34:0:1nhR16i-296gR17oR18R35R20i1045R21i1035gR22r76goR3jR4:8:2oR3jR4:2:1jR23:24:0R17oR18R35R20i1051R21i1048gR22jR11:13:1aoR1aoR8y1:xR10r91goR8y1:yR10r91goR8R42R10r43ghR30r91ghgaoR3jR4:1:1r309R17oR18R35R20i1058R21i1052gR22r134goR3jR4:8:2oR3jR4:1:1r128R17oR18R35R20i1065R21i1060gR22r135gaoR3jR4:1:1r150R17oR18R35R20i1071R21i1066gR22r91goR3jR4:1:1oR6r75R8y6:matrixR10r68R16i-293gR17oR18R35R20i1078R21i1072gR22r68ghR17oR18R35R20i1079R21i1060gR22r134goR3jR4:1:1r199R17oR18R35R20i1082R21i1081gR22r43ghR17oR18R35R20i1083R21i1048gR22r91goR3jR4:8:2oR3jR4:2:1r351R17oR18R35R20i1089R21i1086gR22jR11:13:1ar355hgaoR3jR4:8:2oR3jR4:1:1r128R17oR18R35R20i1095R21i1090gR22r135gaoR3jR4:1:1r150R17oR18R35R20i1101R21i1096gR22r91goR3jR4:1:1r374R17oR18R35R20i1108R21i1102gR22r68ghR17oR18R35R20i1109R21i1090gR22r134goR3jR4:1:1r309R17oR18R35R20i1117R21i1111gR22r134goR3jR4:1:1r199R17oR18R35R20i1120R21i1119gR22r43ghR17oR18R35R20i1121R21i1086gR22r91gR17oR18R35R20i1121R21i1035gR22r91gR17oR18R35R20i1121R21i1020gR22r16ghR17oR18R35R20i1128R21i774gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R35R20i1151R21i1139gR22r16goR3jR4:8:2oR3jR4:1:1r128R17oR18R35R20i1159R21i1154gR22r135gaoR3jR4:8:2oR3jR4:2:1r153R17oR18R35R20i1167R21i1160gR22jR11:13:1aoR1aoR8R39R10r160gr161hR30r91ghgaoR3jR4:1:1r166R17oR18R35R20i1167R21i1160gR22r160goR3jR4:1:1r34R17oR18R35R20i1180R21i1172gR22r35ghR17oR18R35R20i1181R21i1160gR22r91goR3jR4:1:1r374R17oR18R35R20i1188R21i1182gR22r68ghR17oR18R35R20i1189R21i1154gR22r134gR17oR18R35R20i1189R21i1139gR22r16gR17oR18R35R20i1189R21i760gR22r55ghR17oR18R35R20i1195R21i754gR22r55gR6jR27:1:0R28oR6r58R8y8:fragmentR10jR11:13:1aoR1ahR30r55ghR16i-308gR30r55ghR8y26:h3d.pass.ColorMatrixShadery4:varsar32r13r166r374r74r142r344r312r326r235r262r282r301r294r57r128r457hg";
-h3d_pass__$Copy_CopyShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-318ghR16i-316gR16i-317gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-315ghR16i-313gR16i-314gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-322gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y12:calculatedUVR10jR11:5:2i2r11R16i-321gR17oR18y75:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FCopy.hxR20i237R21i225gR22r70goR3jR4:1:1r34R17oR18R32R20i248R21i240gR22r35gR17oR18R32R20i248R21i225gR22r70ghR17oR18R32R20i254R21i219gR22r55gR6jR27:2:0R28oR6r58R8y8:__init__R10jR11:13:1aoR1ahR30r55ghR16i-323gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R16i-320gR17oR18R32R20i304R21i294gR22r93goR3jR4:8:2oR3jR4:2:1jR23:33:0R17oR18R32R20i314R21i307gR22jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R25R10jR11:5:2i2r11ghR30jR11:5:2i4r11ghgaoR3jR4:1:1oR6jR7:2:0R8y7:textureR10r105R16i-319gR17oR18R32R20i314R21i307gR22r105goR3jR4:1:1r69R17oR18R32R20i331R21i319gR22r70ghR17oR18R32R20i332R21i307gR22r108gR17oR18R32R20i332R21i294gR22r93ghR17oR18R32R20i338R21i288gR22r55gR6r80R28oR6r58R8y16:__init__fragmentR10jR11:13:1aoR1ahR30r55ghR16i-324gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r15R17oR18R32R20i382R21i370gR22r16goR3jR4:1:1r92R17oR18R32R20i395R21i385gR22r93gR17oR18R32R20i395R21i370gR22r16ghR17oR18R32R20i401R21i364gR22r55gR6jR27:1:0R28oR6r58R8y8:fragmentR10jR11:13:1aoR1ahR30r55ghR16i-325gR30r55ghR8y25:h3d.pass._Copy.CopyShadery4:varsar32r13r112r92r69r57r81r125r146hg";
+h3d_pass__$Copy_CopyShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-285ghR16i-283gR16i-284gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-282ghR16i-280gR16i-281gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-289gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y12:calculatedUVR10jR11:5:2i2r11R16i-288gR17oR18y75:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FCopy.hxR20i237R21i225gR22r70goR3jR4:1:1r34R17oR18R32R20i248R21i240gR22r35gR17oR18R32R20i248R21i225gR22r70ghR17oR18R32R20i254R21i219gR22r55gR6jR27:2:0R28oR6r58R8y8:__init__R10jR11:13:1aoR1ahR30r55ghR16i-290gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R16i-287gR17oR18R32R20i304R21i294gR22r93goR3jR4:8:2oR3jR4:2:1jR23:33:0R17oR18R32R20i314R21i307gR22jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R25R10jR11:5:2i2r11ghR30jR11:5:2i4r11ghgaoR3jR4:1:1oR6jR7:2:0R8y7:textureR10r105R16i-286gR17oR18R32R20i314R21i307gR22r105goR3jR4:1:1r69R17oR18R32R20i331R21i319gR22r70ghR17oR18R32R20i332R21i307gR22r108gR17oR18R32R20i332R21i294gR22r93ghR17oR18R32R20i338R21i288gR22r55gR6r80R28oR6r58R8y16:__init__fragmentR10jR11:13:1aoR1ahR30r55ghR16i-291gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r15R17oR18R32R20i382R21i370gR22r16goR3jR4:1:1r92R17oR18R32R20i395R21i385gR22r93gR17oR18R32R20i395R21i370gR22r16ghR17oR18R32R20i401R21i364gR22r55gR6jR27:1:0R28oR6r58R8y8:fragmentR10jR11:13:1aoR1ahR30r55ghR16i-292gR30r55ghR8y25:h3d.pass._Copy.CopyShadery4:varsar32r13r112r92r69r57r81r125r146hg";
 h3d_pass_Default.__meta__ = { fields : { cameraView : { global : ["camera.view"]}, cameraNear : { global : ["camera.zNear"]}, cameraFar : { global : ["camera.zFar"]}, cameraProj : { global : ["camera.proj"]}, cameraPos : { global : ["camera.position"]}, cameraProjDiag : { global : ["camera.projDiag"]}, cameraViewProj : { global : ["camera.viewProj"]}, cameraInverseViewProj : { global : ["camera.inverseViewProj"]}, globalTime : { global : ["global.time"]}, pixelSize : { global : ["global.pixelSize"]}, globalModelView : { global : ["global.modelView"]}, globalModelViewInverse : { global : ["global.modelViewInverse"]}}};
 h3d_pass__$HardwarePick_FixedColor.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y7:colorIDR10jR11:5:2i4r11R13r13y2:idi-37ghR16i-35gR16i-36gy1:poy4:filey83:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fpass%2FHardwarePick.hxy3:maxi258y3:mini243gy1:tr12goR3jR4:5:3jR5:1:0oR3jR4:3:1oR3jR4:5:3jR5:0:0oR3jR4:1:1r9R17oR18R19R20i277R21i262gR22r12goR3jR4:5:3r21oR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i284R21i280gR22jR11:13:1ahgaoR3jR4:9:2oR3jR4:1:1oR6jR7:2:0R8y8:viewportR10jR11:5:2i4r11R16i-34gR17oR18R19R20i293R21i285gR22r41gajy14:hxsl.Component:0:0jR25:1:0hR17oR18R19R20i296R21i285gR22jR11:5:2i2r11goR3jR4:0:1jy10:hxsl.Const:3:1d0R17oR18R19R20i300R21i298gR22jR11:3:0goR3jR4:0:1jR26:3:1d0R17oR18R19R20i304R21i302gR22r54ghR17oR18R19R20i305R21i280gR22jR11:5:2i4r11goR3jR4:9:2oR3jR4:1:1r9R17oR18R19R20i323R21i308gR22r12gajR25:3:0hR17oR18R19R20i325R21i308gR22r54gR17oR18R19R20i325R21i280gR22r61gR17oR18R19R20i325R21i262gR22jR11:5:2i4r11gR17oR18R19R20i326R21i261gR22r74goR3jR4:8:2oR3jR4:2:1r31R17oR18R19R20i333R21i329gR22r35gaoR3jR4:9:2oR3jR4:1:1r39R17oR18R19R20i342R21i334gR22r41gajR25:2:0r67hR17oR18R19R20i345R21i334gR22jR11:5:2i2r11goR3jR4:0:1jR26:3:1d1R17oR18R19R20i349R21i347gR22r54goR3jR4:0:1jR26:3:1d1R17oR18R19R20i353R21i351gR22r54ghR17oR18R19R20i354R21i329gR22jR11:5:2i4r11gR17oR18R19R20i354R21i261gR22jR11:5:2i4r11gR17oR18R19R20i354R21i243gR22r12ghR17oR18R19R20i360R21i237gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr109ghR16i-38gR30r109goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r15R17oR18R19R20i404R21i390gR22r16goR3jR4:1:1oR6r40R8R15R10jR11:5:2i4r11R16i-33gR17oR18R19R20i414R21i407gR22r127gR17oR18R19R20i414R21i390gR22r16ghR17oR18R19R20i420R21i384gR22r109gR6jR27:1:0R28oR6r112R8y8:fragmentR10jR11:13:1aoR1ahR30r109ghR16i-39gR30r109ghR8y33:h3d.pass._HardwarePick.FixedColory4:varsar126r39r13r111r135hg";
 h3d_pass_ShaderManager.STRICT = true;
 h3d_pass_ShadowMap.__meta__ = { fields : { border : { ignore : null}}};
-h3d_shader_AmbientLight.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:lightColory4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-336gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FAmbientLight.hxy3:maxi349y3:mini339gy1:tr12goR3jR4:10:3oR3jR4:1:1oR6jR7:2:0R8y8:additiveR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR13i-337gR14oR15R16R17i360R18i352gR19r19goR3jR4:1:1oR6jR7:0:0R8y12:ambientLightR10jR11:5:2i3r11y6:parentoR6r26R8y6:globalR10jR11:12:1ar25oR6r26R8y16:perPixelLightingR10r19R24r28R21ajR22:0:1nhR13i-333ghR13i-331gR13i-332gR14oR15R16R17i382R18i363gR19r27goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:39:0R14oR15R16R17i389R18i385gR19jR11:13:1ahgaoR3jR4:0:1jy10:hxsl.Const:3:1d0R14oR15R16R17i392R18i390gR19jR11:3:0ghR14oR15R16R17i393R18i385gR19jR11:5:2i3r11gR14oR15R16R17i393R18i352gR19r27gR14oR15R16R17i393R18i339gR19r12ghR14oR15R16R17i399R18i333gR19jR11:0:0gR6jy17:hxsl.FunctionKind:2:0y3:refoR6jR7:6:0R8y8:__init__R10jR11:13:1aoR1ahy3:retr58ghR13i-338gR32r58goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y15:lightPixelColorR10jR11:5:2i3r11R13i-335gR14oR15R16R17i454R18i439gR19r73goR3jR4:10:3oR3jR4:1:1r17R14oR15R16R17i465R18i457gR19r19goR3jR4:1:1r25R14oR15R16R17i487R18i468gR19r27goR3jR4:8:2oR3jR4:2:1r38R14oR15R16R17i494R18i490gR19r42gaoR3jR4:0:1jR28:3:1d0R14oR15R16R17i497R18i495gR19r48ghR14oR15R16R17i498R18i490gR19jR11:5:2i3r11gR14oR15R16R17i498R18i457gR19r27gR14oR15R16R17i498R18i439gR19r73ghR14oR15R16R17i504R18i433gR19r58gR6r59R30oR6r61R8y16:__init__fragmentR10jR11:13:1aoR1ahR32r58ghR13i-339gR32r58goR1aoR6r10R8R9R10jR11:5:2i3r11R13i-340ghR2oR3jR4:4:1aoR3jR4:12:1oR3jR4:10:3oR3jR4:1:1r17R14oR15R16R17i578R18i570gR19r19goR3jR4:1:1r108R14oR15R16R17i591R18i581gR19r109goR3jR4:3:1oR3jR4:5:3jR5:0:0oR3jR4:1:1r25R14oR15R16R17i614R18i595gR19r27goR3jR4:5:3jR5:1:0oR3jR4:8:2oR3jR4:2:1jR27:22:0R14oR15R16R17i642R18i617gR19jR11:13:1aoR1aoR8y1:_R10r27goR8y1:bR10r48ghR32jR11:5:2i3r11ghgaoR3jR4:3:1oR3jR4:5:3jR5:3:0oR3jR4:0:1jR28:3:1i1R14oR15R16R17i619R18i618gR19r48goR3jR4:1:1r25R14oR15R16R17i641R18i622gR19r27gR14oR15R16R17i641R18i618gR19r27gR14oR15R16R17i642R18i617gR19r27goR3jR4:0:1jR28:3:1d0R14oR15R16R17i649R18i647gR19r48ghR14oR15R16R17i650R18i617gR19r138goR3jR4:1:1r108R14oR15R16R17i663R18i653gR19r109gR14oR15R16R17i663R18i617gR19jR11:5:2i3r11gR14oR15R16R17i663R18i595gR19jR11:5:2i3r11gR14oR15R16R17i664R18i594gR19r169gR14oR15R16R17i664R18i570gR19r109gR14oR15R16R17i664R18i563gR19r58ghR14oR15R16R17i670R18i557gR19r58gR6jR29:3:0R30oR6r61R8y9:calcLightR10jR11:13:1aoR1aoR8R9R10r109ghR32jR11:5:2i3r11ghR13i-341gR32r184goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:6:2jy15:haxe.macro.Unop:2:0oR3jR4:1:1r30R14oR15R16R17i728R18i705gR19r19gR14oR15R16R17i728R18i704gR19r19goR3jR4:5:3jR5:20:1r127oR3jR4:9:2oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-334gR14oR15R16R17i741R18i731gR19r203gajy14:hxsl.Component:0:0jR40:1:0jR40:2:0hR14oR15R16R17i745R18i731gR19jR11:5:2i3r11goR3jR4:8:2oR3jR4:1:1r179R14oR15R16R17i758R18i749gR19r185gaoR3jR4:1:1r9R14oR15R16R17i769R18i759gR19r12ghR14oR15R16R17i770R18i749gR19r184gR14oR15R16R17i770R18i731gR19r212gnR14oR15R16R17i770R18i700gR19r58ghR14oR15R16R17i776R18i694gR19r58gR6jR29:0:0R30oR6r61R8y6:vertexR10jR11:13:1aoR1ahR32r58ghR13i-342gR32r58goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:1:1r30R14oR15R16R17i835R18i812gR19r19goR3jR4:5:3jR5:20:1r127oR3jR4:9:2oR3jR4:1:1r202R14oR15R16R17i848R18i838gR19r203gar207r208r209hR14oR15R16R17i852R18i838gR19jR11:5:2i3r11goR3jR4:8:2oR3jR4:1:1r179R14oR15R16R17i865R18i856gR19r185gaoR3jR4:1:1r72R14oR15R16R17i881R18i866gR19r73ghR14oR15R16R17i882R18i856gR19r184gR14oR15R16R17i882R18i838gR19r252gnR14oR15R16R17i882R18i808gR19r58ghR14oR15R16R17i888R18i802gR19r58gR6jR29:1:0R30oR6r61R8y8:fragmentR10jR11:13:1aoR1ahR32r58ghR13i-343gR32r58ghR8y23:h3d.shader.AmbientLighty4:varsar28r202r72r9r17r60r101r179r230r270hg";
+h3d_shader_AmbientLight.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:lightColory4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-303gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FAmbientLight.hxy3:maxi349y3:mini339gy1:tr12goR3jR4:10:3oR3jR4:1:1oR6jR7:2:0R8y8:additiveR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR13i-304gR14oR15R16R17i360R18i352gR19r19goR3jR4:1:1oR6jR7:0:0R8y12:ambientLightR10jR11:5:2i3r11y6:parentoR6r26R8y6:globalR10jR11:12:1ar25oR6r26R8y16:perPixelLightingR10r19R24r28R21ajR22:0:1nhR13i-300ghR13i-298gR13i-299gR14oR15R16R17i382R18i363gR19r27goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:39:0R14oR15R16R17i389R18i385gR19jR11:13:1ahgaoR3jR4:0:1jy10:hxsl.Const:3:1d0R14oR15R16R17i392R18i390gR19jR11:3:0ghR14oR15R16R17i393R18i385gR19jR11:5:2i3r11gR14oR15R16R17i393R18i352gR19r27gR14oR15R16R17i393R18i339gR19r12ghR14oR15R16R17i399R18i333gR19jR11:0:0gR6jy17:hxsl.FunctionKind:2:0y3:refoR6jR7:6:0R8y8:__init__R10jR11:13:1aoR1ahy3:retr58ghR13i-305gR32r58goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8y15:lightPixelColorR10jR11:5:2i3r11R13i-302gR14oR15R16R17i454R18i439gR19r73goR3jR4:10:3oR3jR4:1:1r17R14oR15R16R17i465R18i457gR19r19goR3jR4:1:1r25R14oR15R16R17i487R18i468gR19r27goR3jR4:8:2oR3jR4:2:1r38R14oR15R16R17i494R18i490gR19r42gaoR3jR4:0:1jR28:3:1d0R14oR15R16R17i497R18i495gR19r48ghR14oR15R16R17i498R18i490gR19jR11:5:2i3r11gR14oR15R16R17i498R18i457gR19r27gR14oR15R16R17i498R18i439gR19r73ghR14oR15R16R17i504R18i433gR19r58gR6r59R30oR6r61R8y16:__init__fragmentR10jR11:13:1aoR1ahR32r58ghR13i-306gR32r58goR1aoR6r10R8R9R10jR11:5:2i3r11R13i-307ghR2oR3jR4:4:1aoR3jR4:12:1oR3jR4:10:3oR3jR4:1:1r17R14oR15R16R17i578R18i570gR19r19goR3jR4:1:1r108R14oR15R16R17i591R18i581gR19r109goR3jR4:3:1oR3jR4:5:3jR5:0:0oR3jR4:1:1r25R14oR15R16R17i614R18i595gR19r27goR3jR4:5:3jR5:1:0oR3jR4:8:2oR3jR4:2:1jR27:22:0R14oR15R16R17i642R18i617gR19jR11:13:1aoR1aoR8y1:_R10r27goR8y1:bR10r48ghR32jR11:5:2i3r11ghgaoR3jR4:3:1oR3jR4:5:3jR5:3:0oR3jR4:0:1jR28:3:1i1R14oR15R16R17i619R18i618gR19r48goR3jR4:1:1r25R14oR15R16R17i641R18i622gR19r27gR14oR15R16R17i641R18i618gR19r27gR14oR15R16R17i642R18i617gR19r27goR3jR4:0:1jR28:3:1d0R14oR15R16R17i649R18i647gR19r48ghR14oR15R16R17i650R18i617gR19r138goR3jR4:1:1r108R14oR15R16R17i663R18i653gR19r109gR14oR15R16R17i663R18i617gR19jR11:5:2i3r11gR14oR15R16R17i663R18i595gR19jR11:5:2i3r11gR14oR15R16R17i664R18i594gR19r169gR14oR15R16R17i664R18i570gR19r109gR14oR15R16R17i664R18i563gR19r58ghR14oR15R16R17i670R18i557gR19r58gR6jR29:3:0R30oR6r61R8y9:calcLightR10jR11:13:1aoR1aoR8R9R10r109ghR32jR11:5:2i3r11ghR13i-308gR32r184goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:6:2jy15:haxe.macro.Unop:2:0oR3jR4:1:1r30R14oR15R16R17i728R18i705gR19r19gR14oR15R16R17i728R18i704gR19r19goR3jR4:5:3jR5:20:1r127oR3jR4:9:2oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-301gR14oR15R16R17i741R18i731gR19r203gajy14:hxsl.Component:0:0jR40:1:0jR40:2:0hR14oR15R16R17i745R18i731gR19jR11:5:2i3r11goR3jR4:8:2oR3jR4:1:1r179R14oR15R16R17i758R18i749gR19r185gaoR3jR4:1:1r9R14oR15R16R17i769R18i759gR19r12ghR14oR15R16R17i770R18i749gR19r184gR14oR15R16R17i770R18i731gR19r212gnR14oR15R16R17i770R18i700gR19r58ghR14oR15R16R17i776R18i694gR19r58gR6jR29:0:0R30oR6r61R8y6:vertexR10jR11:13:1aoR1ahR32r58ghR13i-309gR32r58goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:1:1r30R14oR15R16R17i835R18i812gR19r19goR3jR4:5:3jR5:20:1r127oR3jR4:9:2oR3jR4:1:1r202R14oR15R16R17i848R18i838gR19r203gar207r208r209hR14oR15R16R17i852R18i838gR19jR11:5:2i3r11goR3jR4:8:2oR3jR4:1:1r179R14oR15R16R17i865R18i856gR19r185gaoR3jR4:1:1r72R14oR15R16R17i881R18i866gR19r73ghR14oR15R16R17i882R18i856gR19r184gR14oR15R16R17i882R18i838gR19r252gnR14oR15R16R17i882R18i808gR19r58ghR14oR15R16R17i888R18i802gR19r58gR6jR29:1:0R30oR6r61R8y8:fragmentR10jR11:13:1aoR1ahR32r58ghR13i-310gR32r58ghR8y23:h3d.shader.AmbientLighty4:varsar28r202r72r9r17r60r101r179r230r270hg";
 h3d_shader_Base2d.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey14:spritePositiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-11gy1:poy4:filey79:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FBase2d.hxy3:maxi983y3:mini969gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R14oR15R16R17i990R18i986gR19jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8y8:positionR10jR11:5:2i2r11y6:parentoR6r25R8y5:inputR10jR11:12:1ar24oR6r25R8y2:uvR10jR11:5:2i2r11R22r27R13i-3goR6r25R8y5:colorR10jR11:5:2i4r11R22r27R13i-4ghR13i-1gR13i-2gR14oR15R16R17i1005R18i991gR19r26goR3jR4:1:1oR6jR7:2:0R8y6:zValueR10jR11:3:0R13i-9gR14oR15R16R17i1013R18i1007gR19r39goR3jR4:0:1jy10:hxsl.Const:3:1i1R14oR15R16R17i1016R18i1015gR19r39ghR14oR15R16R17i1017R18i986gR19jR11:5:2i4r11gR14oR15R16R17i1017R18i969gR19r12goR3jR4:10:3oR3jR4:1:1oR6r38R8y10:isRelativeR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR13i-16gR14oR15R16R17i1037R18i1027gR19r54goR3jR4:4:1aoR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1oR6r10R8y16:absolutePositionR10jR11:5:2i4r11R13i-12gR14oR15R16R17i1063R18i1047gR19r65gajy14:hxsl.Component:0:0hR14oR15R16R17i1065R18i1047gR19r39goR3jR4:8:2oR3jR4:2:1jR20:29:0R14oR15R16R17i1093R18i1068gR19jR11:13:1aoR1aoR8y1:_R10jR11:5:2i3r11goR8y1:bR10jR11:5:2i3r11ghy3:retr39ghgaoR3jR4:8:2oR3jR4:2:1jR20:39:0R14oR15R16R17i1072R18i1068gR19jR11:13:1ahgaoR3jR4:9:2oR3jR4:1:1r9R14oR15R16R17i1087R18i1073gR19r12gar69jR32:1:0hR14oR15R16R17i1090R18i1073gR19jR11:5:2i2r11goR3jR4:0:1jR27:3:1i1R14oR15R16R17i1092R18i1091gR19r39ghR14oR15R16R17i1093R18i1068gR19r81goR3jR4:1:1oR6r38R8y15:absoluteMatrixAR10jR11:5:2i3r11R13i-18gR14oR15R16R17i1113R18i1098gR19r111ghR14oR15R16R17i1114R18i1068gR19r39gR14oR15R16R17i1114R18i1047gR19r39goR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1r64R14oR15R16R17i1137R18i1121gR19r65gar99hR14oR15R16R17i1139R18i1121gR19r39goR3jR4:8:2oR3jR4:2:1r74R14oR15R16R17i1167R18i1142gR19jR11:13:1aoR1aoR8R33R10jR11:5:2i3r11gr82hR35r39ghgaoR3jR4:8:2oR3jR4:2:1r88R14oR15R16R17i1146R18i1142gR19r92gaoR3jR4:9:2oR3jR4:1:1r9R14oR15R16R17i1161R18i1147gR19r12gar69r99hR14oR15R16R17i1164R18i1147gR19jR11:5:2i2r11goR3jR4:0:1jR27:3:1i1R14oR15R16R17i1166R18i1165gR19r39ghR14oR15R16R17i1167R18i1142gR19r134goR3jR4:1:1oR6r38R8y15:absoluteMatrixBR10jR11:5:2i3r11R13i-19gR14oR15R16R17i1187R18i1172gR19r158ghR14oR15R16R17i1188R18i1142gR19r39gR14oR15R16R17i1188R18i1121gR19r39goR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1r64R14oR15R16R17i1211R18i1195gR19r65gajR32:2:0jR32:3:0hR14oR15R16R17i1214R18i1195gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1r9R14oR15R16R17i1231R18i1217gR19r12gar171r172hR14oR15R16R17i1234R18i1217gR19jR11:5:2i2r11gR14oR15R16R17i1234R18i1195gR19r175ghR14oR15R16R17i1241R18i1040gR19jR11:0:0goR3jR4:5:3r7oR3jR4:1:1r64R14oR15R16R17i1268R18i1252gR19r65goR3jR4:1:1r9R14oR15R16R17i1285R18i1271gR19r12gR14oR15R16R17i1285R18i1252gR19r65gR14oR15R16R17i1285R18i1023gR19r188goR3jR4:5:3r7oR3jR4:1:1oR6jR7:3:0R8y12:calculatedUVR10jR11:5:2i2r11R13i-15gR14oR15R16R17i1303R18i1291gR19r204goR3jR4:10:3oR3jR4:1:1oR6r38R8y8:hasUVPosR10r54R29ajR30:0:1nhR13i-22gR14oR15R16R17i1314R18i1306gR19r54goR3jR4:5:3jR5:0:0oR3jR4:5:3jR5:1:0oR3jR4:1:1r29R14oR15R16R17i1325R18i1317gR19r30goR3jR4:9:2oR3jR4:1:1oR6r38R8y5:uvPosR10jR11:5:2i4r11R13i-23gR14oR15R16R17i1333R18i1328gR19r224gar171r172hR14oR15R16R17i1336R18i1328gR19jR11:5:2i2r11gR14oR15R16R17i1336R18i1317gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1r223R14oR15R16R17i1344R18i1339gR19r224gar69r99hR14oR15R16R17i1347R18i1339gR19jR11:5:2i2r11gR14oR15R16R17i1347R18i1317gR19jR11:5:2i2r11goR3jR4:1:1r29R14oR15R16R17i1358R18i1350gR19r30gR14oR15R16R17i1358R18i1306gR19r244gR14oR15R16R17i1358R18i1291gR19r204goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-13gR14oR15R16R17i1374R18i1364gR19r255goR3jR4:10:3oR3jR4:1:1r53R14oR15R16R17i1387R18i1377gR19r54goR3jR4:5:3r217oR3jR4:1:1oR6r38R8R25R10jR11:5:2i4r11R13i-17gR14oR15R16R17i1395R18i1390gR19r265goR3jR4:1:1r31R14oR15R16R17i1409R18i1398gR19r32gR14oR15R16R17i1409R18i1390gR19jR11:5:2i4r11goR3jR4:1:1r31R14oR15R16R17i1423R18i1412gR19r32gR14oR15R16R17i1423R18i1377gR19r273gR14oR15R16R17i1423R18i1364gR19r255goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y12:textureColorR10jR11:5:2i4r11R13i-14gR14oR15R16R17i1441R18i1429gR19r284goR3jR4:8:2oR3jR4:2:1jR20:33:0R14oR15R16R17i1451R18i1444gR19jR11:13:1aoR1aoR8R33R10jR11:10:0goR8R24R10jR11:5:2i2r11ghR35jR11:5:2i4r11ghgaoR3jR4:1:1oR6r38R8y7:textureR10r296R13i-10gR14oR15R16R17i1451R18i1444gR19r296goR3jR4:1:1r202R14oR15R16R17i1468R18i1456gR19r204ghR14oR15R16R17i1469R18i1444gR19r299gR14oR15R16R17i1469R18i1429gR19r284goR3jR4:5:3jR5:20:1r217oR3jR4:1:1r254R14oR15R16R17i1485R18i1475gR19r255goR3jR4:1:1r283R14oR15R16R17i1501R18i1489gR19r284gR14oR15R16R17i1501R18i1475gR19r255ghR14oR15R16R17i1507R18i963gR19r188gR6jy17:hxsl.FunctionKind:2:0y3:refoR6jR7:6:0R8y8:__init__R10jR11:13:1aoR1ahR35r188ghR13i-29gR35r188goR1ahR2oR3jR4:4:1aoR3jR4:7:2oR6r10R8y3:tmpR10jR11:5:2i3r11R13i-32goR3jR4:8:2oR3jR4:2:1r88R14oR15R16R17i1610R18i1606gR19r92gaoR3jR4:9:2oR3jR4:1:1r64R14oR15R16R17i1627R18i1611gR19r65gar69r99hR14oR15R16R17i1630R18i1611gR19jR11:5:2i2r11goR3jR4:0:1jR27:3:1i1R14oR15R16R17i1633R18i1632gR19r39ghR14oR15R16R17i1634R18i1606gR19r338gR14oR15R16R17i1635R18i1596gR19r188goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y14:outputPositionR10jR11:5:2i4r11R13i-28gR14oR15R16R17i1654R18i1640gR19r363goR3jR4:8:2oR3jR4:2:1r17R14oR15R16R17i1661R18i1657gR19r21gaoR3jR4:8:2oR3jR4:2:1r74R14oR15R16R17i1671R18i1668gR19jR11:13:1aoR1aoR8R33R10r338gr82hR35r39ghgaoR3jR4:1:1r337R14oR15R16R17i1671R18i1668gR19r338goR3jR4:1:1oR6r38R8y13:filterMatrixAR10jR11:5:2i3r11R13i-20gR14oR15R16R17i1689R18i1676gR19r386ghR14oR15R16R17i1690R18i1668gR19r39goR3jR4:8:2oR3jR4:2:1r74R14oR15R16R17i1700R18i1697gR19jR11:13:1aoR1aoR8R33R10r338gr82hR35r39ghgaoR3jR4:1:1r337R14oR15R16R17i1700R18i1697gR19r338goR3jR4:1:1oR6r38R8y13:filterMatrixBR10jR11:5:2i3r11R13i-21gR14oR15R16R17i1718R18i1705gR19r406ghR14oR15R16R17i1719R18i1697gR19r39goR3jR4:9:2oR3jR4:1:1r64R14oR15R16R17i1742R18i1726gR19r65gar171r172hR14oR15R16R17i1745R18i1726gR19jR11:5:2i2r11ghR14oR15R16R17i1751R18i1657gR19jR11:5:2i4r11gR14oR15R16R17i1751R18i1640gR19r363goR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1r362R14oR15R16R17i1800R18i1786gR19r363gar69r99hR14oR15R16R17i1803R18i1786gR19jR11:5:2i2r11goR3jR4:5:3r217oR3jR4:3:1oR3jR4:5:3r215oR3jR4:9:2oR3jR4:1:1r362R14oR15R16R17i1821R18i1807gR19r363gar69r99hR14oR15R16R17i1824R18i1807gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1oR6r38R8y8:viewportR10jR11:5:2i4r11R13i-27gR14oR15R16R17i1835R18i1827gR19r447gar69r99hR14oR15R16R17i1838R18i1827gR19jR11:5:2i2r11gR14oR15R16R17i1838R18i1807gR19jR11:5:2i2r11gR14oR15R16R17i1839R18i1806gR19r456goR3jR4:9:2oR3jR4:1:1r446R14oR15R16R17i1850R18i1842gR19r447gar171r172hR14oR15R16R17i1853R18i1842gR19jR11:5:2i2r11gR14oR15R16R17i1853R18i1806gR19jR11:5:2i2r11gR14oR15R16R17i1853R18i1786gR19r432goR3jR4:10:3oR3jR4:1:1oR6r38R8y10:pixelAlignR10r54R29ajR30:0:1nhR13i-25gR14oR15R16R17i1959R18i1949gR19r54goR3jR4:5:3jR5:20:1jR5:3:0oR3jR4:9:2oR3jR4:1:1r362R14oR15R16R17i1976R18i1962gR19r363gar69r99hR14oR15R16R17i1979R18i1962gR19jR11:5:2i2r11goR3jR4:1:1oR6r38R8y16:halfPixelInverseR10jR11:5:2i2r11R13i-26gR14oR15R16R17i1999R18i1983gR19r492gR14oR15R16R17i1999R18i1962gR19r489gnR14oR15R16R17i1999R18i1945gR19r188goR3jR4:5:3r7oR3jR4:1:1oR6r10R8R21R10jR11:5:2i4r11R22oR6r10R8y6:outputR10jR11:12:1ar501oR6r10R8R25R10jR11:5:2i4r11R22r503R13i-7ghR13i-5gR13i-6gR14oR15R16R17i2020R18i2005gR19r502goR3jR4:1:1r362R14oR15R16R17i2037R18i2023gR19r363gR14oR15R16R17i2037R18i2005gR19r502ghR14oR15R16R17i2043R18i1531gR19r188gR6jR44:0:0R45oR6r327R8y6:vertexR10jR11:13:1aoR1ahR35r188ghR13i-30gR35r188goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:5:3jR5:14:0oR3jR4:1:1oR6r38R8y9:killAlphaR10r54R29ajR30:0:1nhR13i-24gR14oR15R16R17i2088R18i2079gR19r54goR3jR4:5:3jR5:9:0oR3jR4:9:2oR3jR4:1:1r254R14oR15R16R17i2102R18i2092gR19r255gar172hR14oR15R16R17i2104R18i2092gR19r39goR3jR4:0:1jR27:3:1d0.001R14oR15R16R17i2112R18i2107gR19r39gR14oR15R16R17i2112R18i2092gR19r54gR14oR15R16R17i2112R18i2079gR19r54goR3jR4:11:0R14oR15R16R17i2122R18i2115gR19r188gnR14oR15R16R17i2122R18i2075gR19r188goR3jR4:5:3r7oR3jR4:1:1r505R14oR15R16R17i2140R18i2128gR19r506goR3jR4:1:1r254R14oR15R16R17i2153R18i2143gR19r255gR14oR15R16R17i2153R18i2128gR19r506ghR14oR15R16R17i2159R18i2069gR19r188gR6jR44:1:0R45oR6r327R8y8:fragmentR10jR11:13:1aoR1ahR35r188ghR13i-31gR35r188ghR8y17:h3d.shader.Base2dy4:varsar27r503oR6jR7:0:0R8y4:timeR10r39R13i-8gr37r303r9r64r254r283r202r53r264r110r157r385r405r209r223r531r474r491r446r362r326r518r570hg";
 h3d_shader_BaseMesh.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey16:relativePositiony4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-97gy1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FBaseMesh.hxy3:maxi1269y3:mini1253gy1:tr12goR3jR4:1:1oR6jR7:1:0R8y8:positionR10jR11:5:2i3r11y6:parentoR6r17R8y5:inputR10jR11:12:1ar16oR6r17R8y6:normalR10jR11:5:2i3r11R21r19R13i-91ghR13i-89gR13i-90gR14oR15R16R17i1286R18i1272gR19r18gR14oR15R16R17i1286R18i1253gR19r12goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y19:transformedPositionR10jR11:5:2i3r11R13i-98gR14oR15R16R17i1311R18i1292gR19r31goR3jR4:5:3jR5:1:0oR3jR4:1:1r9R14oR15R16R17i1330R18i1314gR19r12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:50:0R14oR15R16R17i1349R18i1333gR19jR11:13:1ahgaoR3jR4:1:1oR6jR7:0:0R8y9:modelViewR10jR11:7:0R21oR6r49R8y6:globalR10jR11:12:1aoR6r49R8y4:timeR10jR11:3:0R21r51R13i-85goR6r49R8y9:pixelSizeR10jR11:5:2i2r11R21r51R13i-86gr48oR6r49R8y16:modelViewInverseR10r50R21r51y10:qualifiersajy17:hxsl.VarQualifier:3:0hR13i-88ghR13i-84gR31ar59hR13i-87gR14oR15R16R17i1349R18i1333gR19r50ghR14oR15R16R17i1358R18i1333gR19jR11:8:0gR14oR15R16R17i1358R18i1314gR19jR11:5:2i3r11gR14oR15R16R17i1358R18i1292gR19r31goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y17:projectedPositionR10jR11:5:2i4r11R13i-101gR14oR15R16R17i1381R18i1364gR19r75goR3jR4:5:3r35oR3jR4:8:2oR3jR4:2:1jR25:40:0R14oR15R16R17i1388R18i1384gR19jR11:13:1ahgaoR3jR4:1:1r30R14oR15R16R17i1408R18i1389gR19r31goR3jR4:0:1jy10:hxsl.Const:3:1i1R14oR15R16R17i1411R18i1410gR19r54ghR14oR15R16R17i1412R18i1384gR19jR11:5:2i4r11goR3jR4:1:1oR6r49R8y8:viewProjR10r50R21oR6r49R8y6:cameraR10jR11:12:1aoR6r49R8y4:viewR10r50R21r99R13i-75goR6r49R8y4:projR10r50R21r99R13i-76goR6r49R8R20R10jR11:5:2i3r11R21r99R13i-77goR6r49R8y8:projDiagR10jR11:5:2i3r11R21r99R13i-78gr98oR6r49R8y15:inverseViewProjR10r50R21r99R13i-80goR6r49R8y5:zNearR10r54R21r99R13i-81goR6r49R8y4:zFarR10r54R21r99R13i-82goR6jR7:3:0R8y3:dirR10jR11:5:2i3r11R21r99R13i-83ghR13i-74gR13i-79gR14oR15R16R17i1430R18i1415gR19r50gR14oR15R16R17i1430R18i1384gR19jR11:5:2i4r11gR14oR15R16R17i1430R18i1364gR19r75goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y17:transformedNormalR10jR11:5:2i3r11R13i-100gR14oR15R16R17i1453R18i1436gR19r124goR3jR4:8:2oR3jR4:2:1jR25:31:0R14oR15R16R17i1496R18i1456gR19jR11:13:1aoR1aoR8y1:_R10r69ghy3:retr69ghgaoR3jR4:3:1oR3jR4:5:3r35oR3jR4:1:1r21R14oR15R16R17i1469R18i1457gR19r22goR3jR4:8:2oR3jR4:2:1jR25:48:0R14oR15R16R17i1488R18i1472gR19jR11:13:1ahgaoR3jR4:1:1r48R14oR15R16R17i1488R18i1472gR19r50ghR14oR15R16R17i1495R18i1472gR19jR11:6:0gR14oR15R16R17i1495R18i1457gR19r69gR14oR15R16R17i1496R18i1456gR19r69ghR14oR15R16R17i1508R18i1456gR19r69gR14oR15R16R17i1508R18i1436gR19r124goR3jR4:5:3r7oR3jR4:1:1r110R14oR15R16R17i1524R18i1514gR19r112goR3jR4:8:2oR3jR4:2:1r129R14oR15R16R17i1566R18i1527gR19jR11:13:1aoR1aoR8R45R10jR11:5:2i3r11ghR46r69ghgaoR3jR4:3:1oR3jR4:5:3jR5:3:0oR3jR4:1:1r103R14oR15R16R17i1543R18i1528gR19r104goR3jR4:1:1r30R14oR15R16R17i1565R18i1546gR19r31gR14oR15R16R17i1565R18i1528gR19r177gR14oR15R16R17i1566R18i1527gR19r177ghR14oR15R16R17i1578R18i1527gR19r69gR14oR15R16R17i1578R18i1514gR19r112goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-102gR14oR15R16R17i1594R18i1584gR19r200goR3jR4:1:1oR6jR7:2:0R8y5:colorR10jR11:5:2i4r11R13i-107gR14oR15R16R17i1602R18i1597gR19r206gR14oR15R16R17i1602R18i1584gR19r200goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y9:specPowerR10r54R13i-105gR14oR15R16R17i1617R18i1608gR19r54goR3jR4:1:1oR6r205R8y13:specularPowerR10r54R31ajR32:7:2d0d100hR13i-108gR14oR15R16R17i1633R18i1620gR19r54gR14oR15R16R17i1633R18i1608gR19r54goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y9:specColorR10jR11:5:2i3r11R13i-106gR14oR15R16R17i1648R18i1639gR19r227goR3jR4:5:3r35oR3jR4:1:1oR6r205R8y13:specularColorR10jR11:5:2i3r11R13i-110gR14oR15R16R17i1664R18i1651gR19r233goR3jR4:1:1oR6r205R8y14:specularAmountR10r54R31ajR32:7:2d0d10hR13i-109gR14oR15R16R17i1681R18i1667gR19r54gR14oR15R16R17i1681R18i1651gR19r233gR14oR15R16R17i1681R18i1639gR19r227goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y8:screenUVR10jR11:5:2i2r11R13i-104gR14oR15R16R17i1695R18i1687gR19r249goR3jR4:5:3jR5:0:0oR3jR4:5:3r35oR3jR4:3:1oR3jR4:5:3jR5:2:0oR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i1716R18i1699gR19r75gajy14:hxsl.Component:0:0jR55:1:0hR14oR15R16R17i1719R18i1699gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i1739R18i1722gR19r75gajR55:3:0hR14oR15R16R17i1741R18i1722gR19r54gR14oR15R16R17i1741R18i1699gR19r267gR14oR15R16R17i1742R18i1698gR19r267goR3jR4:8:2oR3jR4:2:1jR25:38:0R14oR15R16R17i1749R18i1745gR19jR11:13:1ahgaoR3jR4:0:1jR34:3:1d0.5R14oR15R16R17i1753R18i1750gR19r54goR3jR4:0:1jR34:3:1d-0.5R14oR15R16R17i1759R18i1755gR19r54ghR14oR15R16R17i1760R18i1745gR19jR11:5:2i2r11gR14oR15R16R17i1760R18i1698gR19jR11:5:2i2r11goR3jR4:0:1jR34:3:1d0.5R14oR15R16R17i1766R18i1763gR19r54gR14oR15R16R17i1766R18i1698gR19r301gR14oR15R16R17i1766R18i1687gR19r249goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y5:depthR10r54R13i-103gR14oR15R16R17i1777R18i1772gR19r54goR3jR4:5:3r257oR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i1797R18i1780gR19r75gajR55:2:0hR14oR15R16R17i1799R18i1780gR19r54goR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i1819R18i1802gR19r75gar273hR14oR15R16R17i1821R18i1802gR19r54gR14oR15R16R17i1821R18i1780gR19r54gR14oR15R16R17i1821R18i1772gR19r54ghR14oR15R16R17i1827R18i1247gR19jR11:0:0gR6jy17:hxsl.FunctionKind:2:0y3:refoR6jR7:6:0R8y8:__init__R10jR11:13:1aoR1ahR46r337ghR13i-111gR46r337goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r123R14oR15R16R17i1884R18i1867gR19r124goR3jR4:8:2oR3jR4:2:1r129R14oR15R16R17i1904R18i1887gR19jR11:13:1aoR1aoR8R45R10r124ghR46r69ghgaoR3jR4:1:1r123R14oR15R16R17i1904R18i1887gR19r124ghR14oR15R16R17i1916R18i1887gR19r69gR14oR15R16R17i1916R18i1867gR19r124goR3jR4:5:3r7oR3jR4:1:1r248R14oR15R16R17i2025R18i2017gR19r249goR3jR4:5:3r253oR3jR4:5:3r35oR3jR4:3:1oR3jR4:5:3r257oR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i2046R18i2029gR19r75gar263r264hR14oR15R16R17i2049R18i2029gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i2069R18i2052gR19r75gar273hR14oR15R16R17i2071R18i2052gR19r54gR14oR15R16R17i2071R18i2029gR19r385gR14oR15R16R17i2072R18i2028gR19r385goR3jR4:8:2oR3jR4:2:1r282R14oR15R16R17i2079R18i2075gR19r286gaoR3jR4:0:1jR34:3:1d0.5R14oR15R16R17i2083R18i2080gR19r54goR3jR4:0:1jR34:3:1d-0.5R14oR15R16R17i2089R18i2085gR19r54ghR14oR15R16R17i2090R18i2075gR19jR11:5:2i2r11gR14oR15R16R17i2090R18i2028gR19jR11:5:2i2r11goR3jR4:0:1jR34:3:1d0.5R14oR15R16R17i2096R18i2093gR19r54gR14oR15R16R17i2096R18i2028gR19r415gR14oR15R16R17i2096R18i2017gR19r249goR3jR4:5:3r7oR3jR4:1:1r312R14oR15R16R17i2107R18i2102gR19r54goR3jR4:5:3r257oR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i2127R18i2110gR19r75gar321hR14oR15R16R17i2129R18i2110gR19r54goR3jR4:9:2oR3jR4:1:1r74R14oR15R16R17i2149R18i2132gR19r75gar273hR14oR15R16R17i2151R18i2132gR19r54gR14oR15R16R17i2151R18i2110gR19r54gR14oR15R16R17i2151R18i2102gR19r54goR3jR4:5:3r7oR3jR4:1:1r213R14oR15R16R17i2244R18i2235gR19r54goR3jR4:1:1r217R14oR15R16R17i2260R18i2247gR19r54gR14oR15R16R17i2260R18i2235gR19r54goR3jR4:5:3r7oR3jR4:1:1r226R14oR15R16R17i2275R18i2266gR19r227goR3jR4:5:3r35oR3jR4:1:1r232R14oR15R16R17i2291R18i2278gR19r233goR3jR4:1:1r237R14oR15R16R17i2308R18i2294gR19r54gR14oR15R16R17i2308R18i2278gR19r233gR14oR15R16R17i2308R18i2266gR19r227ghR14oR15R16R17i2314R18i1861gR19r337gR6r338R58oR6r340R8y16:__init__fragmentR10jR11:13:1aoR1ahR46r337ghR13i-112gR46r337goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1oR6r10R8R20R10jR11:5:2i4r11R21oR6r10R8y6:outputR10jR11:12:1ar484oR6r10R8R48R10jR11:5:2i4r11R21r486R13i-94goR6r10R8R56R10r54R21r486R13i-95goR6r10R8R23R10jR11:5:2i3r11R21r486R13i-96ghR13i-92gR13i-93gR14oR15R16R17i2359R18i2344gR19r485goR3jR4:1:1r74R14oR15R16R17i2379R18i2362gR19r75gR14oR15R16R17i2379R18i2344gR19r485goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y24:pixelTransformedPositionR10jR11:5:2i3r11R13i-99gR14oR15R16R17i2409R18i2385gR19r504goR3jR4:1:1r30R14oR15R16R17i2431R18i2412gR19r31gR14oR15R16R17i2431R18i2385gR19r504ghR14oR15R16R17i2437R18i2338gR19r337gR6jR57:0:0R58oR6r340R8y6:vertexR10jR11:13:1aoR1ahR46r337ghR13i-113gR46r337goR1ahR2oR3jR4:4:1aoR3jR4:5:3r7oR3jR4:1:1r488R14oR15R16R17i2481R18i2469gR19r489goR3jR4:1:1r199R14oR15R16R17i2494R18i2484gR19r200gR14oR15R16R17i2494R18i2469gR19r489goR3jR4:5:3r7oR3jR4:1:1r490R14oR15R16R17i2512R18i2500gR19r54goR3jR4:1:1r312R14oR15R16R17i2520R18i2515gR19r54gR14oR15R16R17i2520R18i2500gR19r54goR3jR4:5:3r7oR3jR4:1:1r491R14oR15R16R17i2539R18i2526gR19r492goR3jR4:1:1r123R14oR15R16R17i2559R18i2542gR19r124gR14oR15R16R17i2559R18i2526gR19r492ghR14oR15R16R17i2565R18i2463gR19r337gR6jR57:1:0R58oR6r340R8y8:fragmentR10jR11:13:1aoR1ahR46r337ghR13i-114gR46r337ghR8y19:h3d.shader.BaseMeshy4:varsar99r51r19r486r9r30r503r123r74r199r312r248r213r226r204r217r237r232r339r473r515r554hg";
 h3d_shader_Bloom.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-160ghR16i-158gR16i-159gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-157ghR16i-155gR16i-156gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-164gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:7:2oR6r10R8y1:cR10jR11:5:2i4r11R16i-166goR3jR4:8:2oR3jR4:2:1jR23:33:0R17oR18y78:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FBloom.hxR20i223R21i216gR22jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R25R10jR11:5:2i2r11ghR30r69ghgaoR3jR4:1:1oR6jR7:2:0R8y7:textureR10r79R16i-161gR17oR18R32R20i223R21i216gR22r79goR3jR4:1:1r34R17oR18R32R20i236R21i228gR22r35ghR17oR18R32R20i237R21i216gR22r69gR17oR18R32R20i238R21i208gR22r55goR3jR4:7:2oR6r10R8y3:lumR10r43R16i-167goR3jR4:8:2oR3jR4:2:1jR23:29:0R17oR18R32R20i258R21i253gR22jR11:13:1aoR1aoR8R33R10jR11:5:2i3r11goR8y1:bR10jR11:5:2i3r11ghR30r43ghgaoR3jR4:9:2oR3jR4:1:1r68R17oR18R32R20i254R21i253gR22r69gajy14:hxsl.Component:0:0jR37:1:0jR37:2:0hR17oR18R32R20i258R21i253gR22r107goR3jR4:8:2oR3jR4:2:1jR23:39:0R17oR18R32R20i267R21i263gR22jR11:13:1ahgaoR3jR4:0:1jR26:3:1d0.2126R17oR18R32R20i274R21i268gR22r43goR3jR4:0:1jR26:3:1d0.7152R17oR18R32R20i282R21i276gR22r43goR3jR4:0:1jR26:3:1d0.0722R17oR18R32R20i290R21i284gR22r43ghR17oR18R32R20i291R21i263gR22jR11:5:2i3r11ghR17oR18R32R20i292R21i253gR22r43gR17oR18R32R20i293R21i243gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R32R20i310R21i298gR22r16goR3jR4:8:2oR3jR4:2:1r22R17oR18R32R20i317R21i313gR22r26gaoR3jR4:5:3jR5:1:0oR3jR4:5:3r159oR3jR4:5:3r159oR3jR4:9:2oR3jR4:1:1r68R17oR18R32R20i319R21i318gR22r69gar117r118r119hR17oR18R32R20i323R21i318gR22jR11:5:2i3r11goR3jR4:8:2oR3jR4:2:1jR23:8:0R17oR18R32R20i329R21i326gR22jR11:13:1aoR1aoR8R33R10r43goR8R36R10r43ghR30r43ghgaoR3jR4:1:1r97R17oR18R32R20i329R21i326gR22r43goR3jR4:1:1oR6r86R8y5:powerR10r43R16i-162gR17oR18R32R20i339R21i334gR22r43ghR17oR18R32R20i340R21i326gR22r43gR17oR18R32R20i340R21i318gR22r169goR3jR4:1:1oR6r86R8y6:amountR10r43R16i-163gR17oR18R32R20i349R21i343gR22r43gR17oR18R32R20i349R21i318gR22r169goR3jR4:9:2oR3jR4:1:1r68R17oR18R32R20i353R21i352gR22r69gajR37:3:0hR17oR18R32R20i355R21i352gR22r43gR17oR18R32R20i355R21i318gR22r169goR3jR4:9:2oR3jR4:1:1r68R17oR18R32R20i358R21i357gR22r69gar204hR17oR18R32R20i360R21i357gR22r43ghR17oR18R32R20i361R21i313gR22jR11:5:2i4r11gR17oR18R32R20i361R21i298gR22r16ghR17oR18R32R20i367R21i202gR22r55gR6jR27:1:0R28oR6r58R8y8:fragmentR10jR11:13:1aoR1ahR30r55ghR16i-165gR30r55ghR8y16:h3d.shader.Bloomy4:varsar32r13r85r186r194r57r224hg";
 h3d_shader_Blur.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey8:positiony4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y6:parentoR6r10R8y6:outputR10jR11:12:1ar9oR6r10R8y5:colorR10jR11:5:2i4r11R13r13y2:idi-173ghR16i-171gR16i-172gy1:poy4:filey85:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FScreenShader.hxy3:maxi262y3:mini247gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R17oR18R19R20i269R21i265gR22jR11:13:1ahgaoR3jR4:1:1oR6jR7:1:0R8R9R10jR11:5:2i2r11R13oR6r30R8y5:inputR10jR11:12:1ar29oR6r30R8y2:uvR10jR11:5:2i2r11R13r32R16i-170ghR16i-168gR16i-169gR17oR18R19R20i284R21i270gR22r31goR3jR4:0:1jy10:hxsl.Const:3:1zR17oR18R19R20i287R21i286gR22jR11:3:0goR3jR4:0:1jR26:3:1i1R17oR18R19R20i290R21i289gR22r43ghR17oR18R19R20i291R21i265gR22jR11:5:2i4r11gR17oR18R19R20i291R21i247gR22r12ghR17oR18R19R20i297R21i241gR22jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr55ghR16i-187gR30r55goR1ahR2oR3jR4:4:1aoR3jR4:10:3oR3jR4:1:1oR6jR7:2:0R8y16:isDepthDependantR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR16i-184gR17oR18y77:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FBlur.hxR20i638R21i622gR22r71goR3jR4:4:1aoR3jR4:7:2oR6r10R8y4:pcurR10jR11:5:2i3r11R16i-191goR3jR4:8:2oR3jR4:1:1oR6r58R8y11:getPositionR10jR11:13:1aoR1aoR8R25R10jR11:5:2i2r11ghR30r80ghR16i-190gR17oR18R34R20i670R21i659gR22r89gaoR3jR4:1:1r34R17oR18R34R20i679R21i671gR22r35ghR17oR18R34R20i680R21i659gR22r80gR17oR18R34R20i681R21i648gR22r55goR3jR4:7:2oR6r10R8y4:ccurR10jR11:5:2i4r11R16i-192goR3jR4:8:2oR3jR4:2:1jR23:33:0R17oR18R34R20i705R21i698gR22jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R25R10jR11:5:2i2r11ghR30r102ghgaoR3jR4:1:1oR6r70R8y7:textureR10r112R16i-175gR17oR18R34R20i705R21i698gR22r112goR3jR4:1:1r34R17oR18R34R20i718R21i710gR22r35ghR17oR18R34R20i719R21i698gR22r102gR17oR18R34R20i720R21i687gR22r55goR3jR4:7:2oR6r10R8R15R10jR11:5:2i4r11R16i-193goR3jR4:8:2oR3jR4:2:1r22R17oR18R34R20i742R21i738gR22r26gaoR3jR4:0:1jR26:3:1zR17oR18R34R20i744R21i743gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i747R21i746gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i750R21i749gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i753R21i752gR22r43ghR17oR18R34R20i754R21i738gR22r130gR17oR18R34R20i755R21i726gR22r55goR3jR4:7:2oR6r10R8y4:ncurR10jR11:5:2i3r11R16i-194goR3jR4:8:2oR3jR4:2:1jR23:55:0R17oR18R34R20i784R21i772gR22jR11:13:1aoR1aoR8y5:valueR10jR11:5:2i4r11ghR30r158ghgaoR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i798R21i785gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1oR6r70R8y13:normalTextureR10r112R16i-186gR17oR18R34R20i798R21i785gR22r112goR3jR4:1:1r34R17oR18R34R20i811R21i803gR22r35ghR17oR18R34R20i812R21i785gR22r102ghR17oR18R34R20i813R21i772gR22r158gR17oR18R34R20i814R21i761gR22r55goR3jR4:20:3y6:unrollahoR3jR4:13:3oR6r10R8y1:iR10jR11:1:0R16i-195goR3jR4:5:3jR5:21:0oR3jR4:5:3jR5:0:0oR3jR4:6:2jy15:haxe.macro.Unop:3:0oR3jR4:1:1oR6r70R8y7:QualityR10r198R32ajR33:0:1nhR16i-177gR17oR18R34R20i846R21i839gR22r198gR17oR18R34R20i846R21i838gR22r198goR3jR4:0:1jR26:2:1i1R17oR18R34R20i853R21i849gR22r198gR17oR18R34R20i853R21i838gR22r198goR3jR4:1:1r206R17oR18R34R20i860R21i853gR22r198gR17oR18R34R20i860R21i838gR22jR11:14:2r198jy13:hxsl.SizeDecl:0:1zgoR3jR4:4:1aoR3jR4:7:2oR6r10R8R25R10jR11:5:2i2r11R16i-196goR3jR4:5:3r202oR3jR4:1:1r34R17oR18R34R20i888R21i880gR22r35goR3jR4:5:3jR5:1:0oR3jR4:1:1oR6r70R8y5:pixelR10jR11:5:2i2r11R16i-180gR17oR18R34R20i896R21i891gR22r239goR3jR4:8:2oR3jR4:2:1jR23:36:0R17oR18R34R20i904R21i899gR22jR11:13:1aoR1aoR8R41R10r198ghR30r43ghgaoR3jR4:1:1r197R17oR18R34R20i906R21i905gR22r198ghR17oR18R34R20i907R21i899gR22r43gR17oR18R34R20i907R21i891gR22r239gR17oR18R34R20i907R21i880gR22r230gR17oR18R34R20i908R21i871gR22r55goR3jR4:7:2oR6r10R8y1:cR10r102R16i-197goR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i930R21i923gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1r118R17oR18R34R20i930R21i923gR22r112goR3jR4:1:1r229R17oR18R34R20i937R21i935gR22r230ghR17oR18R34R20i938R21i923gR22r102gR17oR18R34R20i939R21i915gR22r55goR3jR4:7:2oR6r10R8R17R10r80R16i-198goR3jR4:8:2oR3jR4:1:1r83R17oR18R34R20i965R21i954gR22r89gaoR3jR4:1:1r229R17oR18R34R20i968R21i966gR22r230ghR17oR18R34R20i969R21i954gR22r80gR17oR18R34R20i970R21i946gR22r55goR3jR4:7:2oR6r10R8y1:dR10r43R16i-199goR3jR4:8:2oR3jR4:2:1jR23:29:0R17oR18R34R20i995R21i985gR22jR11:13:1aoR1aoR8R38R10jR11:5:2i3r11goR8y1:bR10jR11:5:2i3r11ghR30r43ghgaoR3jR4:3:1oR3jR4:5:3jR5:3:0oR3jR4:1:1r287R17oR18R34R20i987R21i986gR22r80goR3jR4:1:1r79R17oR18R34R20i994R21i990gR22r80gR17oR18R34R20i994R21i986gR22r311gR17oR18R34R20i995R21i985gR22r311goR3jR4:5:3r318oR3jR4:1:1r287R17oR18R34R20i1001R21i1000gR22r80goR3jR4:1:1r79R17oR18R34R20i1008R21i1004gR22r80gR17oR18R34R20i1008R21i1000gR22jR11:5:2i3r11ghR17oR18R34R20i1009R21i985gR22r43gR17oR18R34R20i1010R21i977gR22r55goR3jR4:7:2oR6r10R8y1:nR10r158R16i-200goR3jR4:8:2oR3jR4:2:1r161R17oR18R34R20i1037R21i1025gR22r169gaoR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i1051R21i1038gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1r182R17oR18R34R20i1051R21i1038gR22r112goR3jR4:1:1r229R17oR18R34R20i1058R21i1056gR22r230ghR17oR18R34R20i1059R21i1038gR22r102ghR17oR18R34R20i1060R21i1025gR22r158gR17oR18R34R20i1061R21i1017gR22r55goR3jR4:5:3r7oR3jR4:1:1r265R17oR18R34R20i1071R21i1070gR22r102goR3jR4:8:2oR3jR4:2:1jR23:24:0R17oR18R34R20i1077R21i1074gR22jR11:13:1aoR1aoR8y1:xR10r102goR8y1:yR10r102goR8y1:aR10r43ghR30r102ghgaoR3jR4:1:1r101R17oR18R34R20i1082R21i1078gR22r102goR3jR4:1:1r265R17oR18R34R20i1085R21i1084gR22r102goR3jR4:8:2oR3jR4:2:1r304R17oR18R34R20i1091R21i1087gR22jR11:13:1aoR1aoR8R38R10r158gr312hR30r43ghgaoR3jR4:1:1r157R17oR18R34R20i1091R21i1087gR22r158goR3jR4:1:1r344R17oR18R34R20i1097R21i1096gR22r158ghR17oR18R34R20i1098R21i1087gR22r43ghR17oR18R34R20i1099R21i1074gR22r102gR17oR18R34R20i1099R21i1070gR22r102goR3jR4:5:3r7oR3jR4:1:1r265R17oR18R34R20i1108R21i1107gR22r102goR3jR4:8:2oR3jR4:2:1r378R17oR18R34R20i1114R21i1111gR22jR11:13:1ar382hgaoR3jR4:1:1r265R17oR18R34R20i1116R21i1115gR22r102goR3jR4:1:1r101R17oR18R34R20i1122R21i1118gR22r102goR3jR4:8:2oR3jR4:2:1jR23:21:0R17oR18R34R20i1154R21i1124gR22jR11:13:1aoR1aoR8R38R10r43goR8R51R10r43ghR30r43ghgaoR3jR4:3:1oR3jR4:5:3r236oR3jR4:8:2oR3jR4:2:1jR23:22:0R17oR18R34R20i1136R21i1125gR22jR11:13:1aoR1aoR8R38R10r43gr443hR30r43ghgaoR3jR4:3:1oR3jR4:5:3r318oR3jR4:1:1r301R17oR18R34R20i1127R21i1126gR22r43goR3jR4:0:1jR26:3:1d0.001R17oR18R34R20i1135R21i1130gR22r43gR17oR18R34R20i1135R21i1126gR22r43gR17oR18R34R20i1136R21i1125gR22r43goR3jR4:0:1jR26:3:1d0R17oR18R34R20i1143R21i1141gR22r43ghR17oR18R34R20i1144R21i1125gR22r43goR3jR4:0:1jR26:3:1i100000R17oR18R34R20i1153R21i1147gR22r43gR17oR18R34R20i1153R21i1125gR22r43gR17oR18R34R20i1154R21i1124gR22r43goR3jR4:0:1jR26:3:1d1R17oR18R34R20i1161R21i1159gR22r43ghR17oR18R34R20i1162R21i1124gR22r43ghR17oR18R34R20i1163R21i1111gR22r102gR17oR18R34R20i1163R21i1107gR22r102goR3jR4:5:3jR5:20:1r202oR3jR4:1:1r129R17oR18R34R20i1176R21i1171gR22r130goR3jR4:5:3r236oR3jR4:1:1r265R17oR18R34R20i1181R21i1180gR22r102goR3jR4:16:2oR3jR4:1:1oR6r70R8y6:valuesR10jR11:14:2r43jR47:1:1r206R16i-179gR17oR18R34R20i1190R21i1184gR22r509goR3jR4:10:3oR3jR4:5:3jR5:9:0oR3jR4:1:1r197R17oR18R34R20i1192R21i1191gR22r198goR3jR4:0:1jR26:2:1zR17oR18R34R20i1196R21i1195gR22r198gR17oR18R34R20i1196R21i1191gR22r71goR3jR4:6:2r204oR3jR4:1:1r197R17oR18R34R20i1201R21i1200gR22r198gR17oR18R34R20i1201R21i1199gR22r198goR3jR4:1:1r197R17oR18R34R20i1205R21i1204gR22r198gR17oR18R34R20i1205R21i1191gR22r198gR17oR18R34R20i1206R21i1184gR22r43gR17oR18R34R20i1206R21i1180gR22r102gR17oR18R34R20i1206R21i1171gR22r130ghR17oR18R34R20i1214R21i863gR22r55gR17oR18R34R20i1214R21i828gR22r55gR17oR18R34R20i1214R21i821gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R34R20i1232R21i1220gR22r16goR3jR4:1:1r129R17oR18R34R20i1240R21i1235gR22r130gR17oR18R34R20i1240R21i1220gR22r16ghR17oR18R34R20i1247R21i641gR22r55goR3jR4:10:3oR3jR4:1:1oR6r70R8y7:isDepthR10r71R32ajR33:0:1nhR16i-178gR17oR18R34R20i1268R21i1261gR22r71goR3jR4:4:1aoR3jR4:7:2oR6r10R8y3:valR10r43R16i-201goR3jR4:0:1jR26:3:1d0R17oR18R34R20i1290R21i1288gR22r43gR17oR18R34R20i1291R21i1278gR22r55goR3jR4:20:3R43ahoR3jR4:13:3oR6r10R8R44R10r198R16i-202goR3jR4:5:3r200oR3jR4:5:3r202oR3jR4:6:2r204oR3jR4:1:1r206R17oR18R34R20i1323R21i1316gR22r198gR17oR18R34R20i1323R21i1315gR22r198goR3jR4:0:1jR26:2:1i1R17oR18R34R20i1330R21i1326gR22r198gR17oR18R34R20i1330R21i1315gR22r198goR3jR4:1:1r206R17oR18R34R20i1337R21i1330gR22r198gR17oR18R34R20i1337R21i1315gR22jR11:14:2r198jR47:0:1zgoR3jR4:5:3jR5:20:1r202oR3jR4:1:1r568R17oR18R34R20i1349R21i1346gR22r43goR3jR4:5:3r236oR3jR4:8:2oR3jR4:2:1jR23:53:0R17oR18R34R20i1359R21i1353gR22jR11:13:1aoR1aoR8R41R10jR11:5:2i4r11ghR30r43ghgaoR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i1367R21i1360gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1r118R17oR18R34R20i1367R21i1360gR22r112goR3jR4:5:3r202oR3jR4:1:1r34R17oR18R34R20i1380R21i1372gR22r35goR3jR4:5:3r236oR3jR4:1:1r238R17oR18R34R20i1388R21i1383gR22r239goR3jR4:8:2oR3jR4:2:1r244R17oR18R34R20i1396R21i1391gR22jR11:13:1ar248hgaoR3jR4:1:1r578R17oR18R34R20i1398R21i1397gR22r198ghR17oR18R34R20i1399R21i1391gR22r43gR17oR18R34R20i1399R21i1383gR22r239gR17oR18R34R20i1399R21i1372gR22jR11:5:2i2r11ghR17oR18R34R20i1400R21i1360gR22r102ghR17oR18R34R20i1401R21i1353gR22r43goR3jR4:16:2oR3jR4:1:1r507R17oR18R34R20i1410R21i1404gR22r509goR3jR4:10:3oR3jR4:5:3r514oR3jR4:1:1r578R17oR18R34R20i1412R21i1411gR22r198goR3jR4:0:1jR26:2:1zR17oR18R34R20i1416R21i1415gR22r198gR17oR18R34R20i1416R21i1411gR22r71goR3jR4:6:2r204oR3jR4:1:1r578R17oR18R34R20i1421R21i1420gR22r198gR17oR18R34R20i1421R21i1419gR22r198goR3jR4:1:1r578R17oR18R34R20i1425R21i1424gR22r198gR17oR18R34R20i1425R21i1411gR22r198gR17oR18R34R20i1426R21i1404gR22r43gR17oR18R34R20i1426R21i1353gR22r43gR17oR18R34R20i1426R21i1346gR22r43gR17oR18R34R20i1426R21i1305gR22r55gR17oR18R34R20i1426R21i1298gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R34R20i1445R21i1433gR22r16goR3jR4:8:2oR3jR4:2:1jR23:52:0R17oR18R34R20i1452R21i1448gR22jR11:13:1aoR1aoR8R41R10r43ghR30jR11:5:2i4r11ghgaoR3jR4:8:2oR3jR4:2:1r436R17oR18R34R20i1456R21i1453gR22jR11:13:1aoR1aoR8R38R10r43gr443hR30r43ghgaoR3jR4:1:1r568R17oR18R34R20i1456R21i1453gR22r43goR3jR4:0:1jR26:3:1d0.9999999R17oR18R34R20i1470R21i1461gR22r43ghR17oR18R34R20i1471R21i1453gR22r43ghR17oR18R34R20i1472R21i1448gR22r709gR17oR18R34R20i1472R21i1433gR22r16ghR17oR18R34R20i1479R21i1271gR22r55goR3jR4:4:1aoR3jR4:7:2oR6r10R8R15R10jR11:5:2i4r11R16i-203goR3jR4:8:2oR3jR4:2:1r22R17oR18R34R20i1508R21i1504gR22r26gaoR3jR4:0:1jR26:3:1zR17oR18R34R20i1510R21i1509gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i1513R21i1512gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i1516R21i1515gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i1519R21i1518gR22r43ghR17oR18R34R20i1520R21i1504gR22r741gR17oR18R34R20i1521R21i1492gR22r55goR3jR4:20:3R43ahoR3jR4:13:3oR6r10R8R44R10r198R16i-204goR3jR4:5:3r200oR3jR4:5:3r202oR3jR4:6:2r204oR3jR4:1:1r206R17oR18R34R20i1553R21i1546gR22r198gR17oR18R34R20i1553R21i1545gR22r198goR3jR4:0:1jR26:2:1i1R17oR18R34R20i1560R21i1556gR22r198gR17oR18R34R20i1560R21i1545gR22r198goR3jR4:1:1r206R17oR18R34R20i1567R21i1560gR22r198gR17oR18R34R20i1567R21i1545gR22jR11:14:2r198jR47:0:1zgoR3jR4:5:3jR5:20:1r202oR3jR4:1:1r740R17oR18R34R20i1581R21i1576gR22r741goR3jR4:5:3r236oR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i1592R21i1585gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1r118R17oR18R34R20i1592R21i1585gR22r112goR3jR4:5:3r202oR3jR4:1:1r34R17oR18R34R20i1605R21i1597gR22r35goR3jR4:5:3r236oR3jR4:1:1r238R17oR18R34R20i1613R21i1608gR22r239goR3jR4:8:2oR3jR4:2:1r244R17oR18R34R20i1621R21i1616gR22jR11:13:1ar248hgaoR3jR4:1:1r770R17oR18R34R20i1623R21i1622gR22r198ghR17oR18R34R20i1624R21i1616gR22r43gR17oR18R34R20i1624R21i1608gR22r239gR17oR18R34R20i1624R21i1597gR22jR11:5:2i2r11ghR17oR18R34R20i1625R21i1585gR22r102goR3jR4:16:2oR3jR4:1:1r507R17oR18R34R20i1634R21i1628gR22r509goR3jR4:10:3oR3jR4:5:3r514oR3jR4:1:1r770R17oR18R34R20i1636R21i1635gR22r198goR3jR4:0:1jR26:2:1zR17oR18R34R20i1640R21i1639gR22r198gR17oR18R34R20i1640R21i1635gR22r71goR3jR4:6:2r204oR3jR4:1:1r770R17oR18R34R20i1645R21i1644gR22r198gR17oR18R34R20i1645R21i1643gR22r198goR3jR4:1:1r770R17oR18R34R20i1649R21i1648gR22r198gR17oR18R34R20i1649R21i1635gR22r198gR17oR18R34R20i1650R21i1628gR22r43gR17oR18R34R20i1650R21i1585gR22r102gR17oR18R34R20i1650R21i1576gR22r741gR17oR18R34R20i1650R21i1535gR22r55gR17oR18R34R20i1650R21i1528gR22r55goR3jR4:5:3r7oR3jR4:1:1r15R17oR18R34R20i1669R21i1657gR22r16goR3jR4:1:1r740R17oR18R34R20i1677R21i1672gR22r741gR17oR18R34R20i1677R21i1657gR22r16ghR17oR18R34R20i1684R21i1485gR22r55gR17oR18R34R20i1684R21i1257gR22r55gR17oR18R34R20i1684R21i618gR22r55goR3jR4:10:3oR3jR4:1:1oR6r70R8y13:hasFixedColorR10r71R32ajR33:0:1nhR16i-181gR17oR18R34R20i1706R21i1693gR22r71goR3jR4:4:1aoR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1r15R17oR18R34R20i1728R21i1716gR22r16gajy14:hxsl.Component:0:0jR60:1:0jR60:2:0hR17oR18R34R20i1732R21i1716gR22jR11:5:2i3r11goR3jR4:9:2oR3jR4:1:1oR6r70R8y10:fixedColorR10jR11:5:2i4r11R16i-183gR17oR18R34R20i1745R21i1735gR22r913gar904r905r906hR17oR18R34R20i1749R21i1735gR22jR11:5:2i3r11gR17oR18R34R20i1749R21i1716gR22r909goR3jR4:10:3oR3jR4:1:1oR6r70R8y16:smoothFixedColorR10r71R32ajR33:0:1nhR16i-182gR17oR18R34R20i1776R21i1760gR22r71goR3jR4:5:3jR5:20:1r236oR3jR4:9:2oR3jR4:1:1r15R17oR18R34R20i1797R21i1785gR22r16gajR60:3:0hR17oR18R34R20i1799R21i1785gR22r43goR3jR4:9:2oR3jR4:1:1r912R17oR18R34R20i1813R21i1803gR22r913gar936hR17oR18R34R20i1815R21i1803gR22r43gR17oR18R34R20i1815R21i1785gR22r43goR3jR4:5:3r7oR3jR4:9:2oR3jR4:1:1r15R17oR18R34R20i1845R21i1833gR22r16gar936hR17oR18R34R20i1847R21i1833gR22r43goR3jR4:5:3r236oR3jR4:9:2oR3jR4:1:1r912R17oR18R34R20i1860R21i1850gR22r913gar936hR17oR18R34R20i1862R21i1850gR22r43goR3jR4:8:2oR3jR4:2:1r244R17oR18R34R20i1870R21i1865gR22jR11:13:1aoR1aoR8R41R10r71ghR30r43ghgaoR3jR4:5:3jR5:7:0oR3jR4:9:2oR3jR4:1:1r15R17oR18R34R20i1883R21i1871gR22r16gar936hR17oR18R34R20i1885R21i1871gR22r43goR3jR4:0:1jR26:3:1zR17oR18R34R20i1889R21i1888gR22r43gR17oR18R34R20i1889R21i1871gR22r71ghR17oR18R34R20i1890R21i1865gR22r43gR17oR18R34R20i1890R21i1850gR22r43gR17oR18R34R20i1890R21i1833gR22r43gR17oR18R34R20i1890R21i1756gR22r55ghR17oR18R34R20i1897R21i1709gR22r55gnR17oR18R34R20i1897R21i1689gR22r55ghR17oR18R34R20i1902R21i612gR22r55gR6jR27:1:0R28oR6r58R8y8:fragmentR10jR11:13:1aoR1ahR30r55ghR16i-188gR30r55goR1aoR6r10R8R25R10r88R16i-189ghR2oR3jR4:4:1aoR3jR4:7:2oR6r10R8y5:depthR10r43R16i-205goR3jR4:8:2oR3jR4:2:1r608R17oR18R34R20i1973R21i1967gR22r616gaoR3jR4:8:2oR3jR4:2:1r105R17oR18R34R20i1986R21i1974gR22jR11:13:1aoR1aoR8R38R10r112gr113hR30r102ghgaoR3jR4:1:1oR6r70R8y12:depthTextureR10r112R16i-176gR17oR18R34R20i1986R21i1974gR22r112goR3jR4:1:1r1011R17oR18R34R20i1993R21i1991gR22r88ghR17oR18R34R20i1994R21i1974gR22r102ghR17oR18R34R20i1995R21i1967gR22r43gR17oR18R34R20i1996R21i1955gR22r55goR3jR4:7:2oR6r10R8y3:uv2R10jR11:5:2i2r11R16i-206goR3jR4:5:3r236oR3jR4:3:1oR3jR4:5:3r318oR3jR4:1:1r1011R17oR18R34R20i2014R21i2012gR22r88goR3jR4:0:1jR26:3:1d0.5R17oR18R34R20i2020R21i2017gR22r43gR17oR18R34R20i2020R21i2012gR22r88gR17oR18R34R20i2021R21i2011gR22r88goR3jR4:8:2oR3jR4:2:1jR23:38:0R17oR18R34R20i2028R21i2024gR22jR11:13:1ahgaoR3jR4:0:1jR26:3:1i2R17oR18R34R20i2030R21i2029gR22r43goR3jR4:0:1jR26:3:1i-2R17oR18R34R20i2034R21i2032gR22r43ghR17oR18R34R20i2035R21i2024gR22jR11:5:2i2r11gR17oR18R34R20i2035R21i2011gR22r1046gR17oR18R34R20i2036R21i2001gR22r55goR3jR4:7:2oR6r10R8y4:tempR10r102R16i-207goR3jR4:5:3r236oR3jR4:8:2oR3jR4:2:1r22R17oR18R34R20i2056R21i2052gR22r26gaoR3jR4:1:1r1045R17oR18R34R20i2060R21i2057gR22r1046goR3jR4:1:1r1015R17oR18R34R20i2067R21i2062gR22r43goR3jR4:0:1jR26:3:1i1R17oR18R34R20i2070R21i2069gR22r43ghR17oR18R34R20i2071R21i2052gR22jR11:5:2i4r11goR3jR4:1:1oR6r70R8y21:cameraInverseViewProjR10jR11:7:0R16i-174gR17oR18R34R20i2095R21i2074gR22r1107gR17oR18R34R20i2095R21i2052gR22r102gR17oR18R34R20i2096R21i2041gR22r55goR3jR4:7:2oR6r10R8y8:originWSR10jR11:5:2i3r11R16i-208goR3jR4:5:3jR5:2:0oR3jR4:9:2oR3jR4:1:1r1085R17oR18R34R20i2120R21i2116gR22r102gar904r905r906hR17oR18R34R20i2124R21i2116gR22r1116goR3jR4:9:2oR3jR4:1:1r1085R17oR18R34R20i2131R21i2127gR22r102gar936hR17oR18R34R20i2133R21i2127gR22r43gR17oR18R34R20i2133R21i2116gR22r1116gR17oR18R34R20i2134R21i2101gR22r55goR3jR4:12:1oR3jR4:1:1r1115R17oR18R34R20i2154R21i2146gR22r1116gR17oR18R34R20i2154R21i2139gR22r55ghR17oR18R34R20i2160R21i1949gR22r55gR6jR27:3:0R28r83R30r80ghR8y15:h3d.shader.Blury4:varsar32r13r1106r118r1032r206r560r507r238r891r924r912r69oR6r70R8y9:hasNormalR10r71R32ajR33:0:1nhR16i-185gr182r57r1004r83hg";
-h3d_shader_ColorAdd.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:20:1jR5:0:0oR3jR4:9:2oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:pixelColory4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-352gy1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorAdd.hxy3:maxi180y3:mini170gy1:tr14gajy14:hxsl.Component:0:0jR20:1:0jR20:2:0hR14oR15R16R17i184R18i170gR19jR11:5:2i3r13goR3jR4:1:1oR6jR7:2:0R8y5:colorR10jR11:5:2i3r13R13i-353gR14oR15R16R17i193R18i188gR19r27gR14oR15R16R17i193R18i170gR19r23ghR14oR15R16R17i199R18i164gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahy3:retr34ghR13i-354gR25r34ghR8y19:h3d.shader.ColorAddy4:varsar11r25r36hg";
-h3d_shader_ColorKey.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:7:2oy4:kindjy12:hxsl.VarKind:4:0y4:namey5:cdiffy4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-358goR3jR4:5:3jy16:haxe.macro.Binop:3:0oR3jR4:1:1oR5r8R7y12:textureColorR9jR10:5:2i4r9R12i-356gy1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorKey.hxy3:maxi197y3:mini185gy1:tr15goR3jR4:1:1oR5jR6:2:0R7y8:colorKeyR9jR10:5:2i4r9R12i-355gR15oR16R17R18i208R19i200gR20r21gR15oR16R17R18i208R19i185gR20r10gR15oR16R17R18i209R19i173gR20jR10:0:0goR3jR4:10:3oR3jR4:5:3jR13:9:0oR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:29:0R15oR16R17R18i223R19i218gR20jR10:13:1aoR1aoR7y1:_R9r10goR7y1:bR9jR10:5:2i4r9ghy3:retjR10:3:0ghgaoR3jR4:1:1r7R15oR16R17R18i223R19i218gR20r10goR3jR4:1:1r7R15oR16R17R18i233R19i228gR20r10ghR15oR16R17R18i234R19i218gR20r43goR3jR4:0:1jy10:hxsl.Const:3:1d1e-005R15oR16R17R18i244R19i237gR20r43gR15oR16R17R18i244R19i218gR20jR10:2:0goR3jR4:11:0R15oR16R17R18i254R19i247gR20r28gnR15oR16R17R18i254R19i214gR20r28ghR15oR16R17R18i260R19i167gR20r28gR5jy17:hxsl.FunctionKind:1:0y3:refoR5jR6:6:0R7y8:fragmentR9jR10:13:1aoR1ahR25r28ghR12i-357gR25r28ghR7y19:h3d.shader.ColorKeyy4:varsar19r14r69hg";
-h3d_shader_ColorMatrix.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:pixelColory4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-359gy1:poy4:filey84:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorMatrix.hxy3:maxi184y3:mini174gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R14oR15R16R17i191R18i187gR19jR11:13:1ahgaoR3jR4:9:2oR3jR4:3:1oR3jR4:5:3jR5:1:0oR3jR4:8:2oR3jR4:2:1r17R14oR15R16R17i198R18i194gR19r21gaoR3jR4:9:2oR3jR4:1:1r9R14oR15R16R17i209R18i199gR19r12gajy14:hxsl.Component:0:0jR21:1:0jR21:2:0hR14oR15R16R17i213R18i199gR19jR11:5:2i3r11goR3jR4:0:1jy10:hxsl.Const:3:1d1R14oR15R16R17i216R18i214gR19jR11:3:0ghR14oR15R16R17i217R18i194gR19jR11:5:2i4r11goR3jR4:1:1oR6jR7:2:0R8y6:matrixR10jR11:7:0R13i-360gR14oR15R16R17i226R18i220gR19r54gR14oR15R16R17i226R18i194gR19jR11:5:2i4r11gR14oR15R16R17i227R18i193gR19r59gar37r38r39hR14oR15R16R17i231R18i193gR19jR11:5:2i3r11goR3jR4:9:2oR3jR4:3:1oR3jR4:5:3r26oR3jR4:1:1r9R14oR15R16R17i244R18i234gR19r12goR3jR4:1:1r52R14oR15R16R17i253R18i247gR19r54gR14oR15R16R17i253R18i234gR19r59gR14oR15R16R17i254R18i233gR19r59gajR21:3:0hR14oR15R16R17i256R18i233gR19r47ghR14oR15R16R17i257R18i187gR19jR11:5:2i4r11gR14oR15R16R17i257R18i174gR19r12ghR14oR15R16R17i263R18i168gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahy3:retr90ghR13i-361gR27r90ghR8y22:h3d.shader.ColorMatrixy4:varsar9r52r92hg";
+h3d_shader_ColorAdd.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:20:1jR5:0:0oR3jR4:9:2oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:pixelColory4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-319gy1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorAdd.hxy3:maxi180y3:mini170gy1:tr14gajy14:hxsl.Component:0:0jR20:1:0jR20:2:0hR14oR15R16R17i184R18i170gR19jR11:5:2i3r13goR3jR4:1:1oR6jR7:2:0R8y5:colorR10jR11:5:2i3r13R13i-320gR14oR15R16R17i193R18i188gR19r27gR14oR15R16R17i193R18i170gR19r23ghR14oR15R16R17i199R18i164gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahy3:retr34ghR13i-321gR25r34ghR8y19:h3d.shader.ColorAddy4:varsar11r25r36hg";
+h3d_shader_ColorKey.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:7:2oy4:kindjy12:hxsl.VarKind:4:0y4:namey5:cdiffy4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-325goR3jR4:5:3jy16:haxe.macro.Binop:3:0oR3jR4:1:1oR5r8R7y12:textureColorR9jR10:5:2i4r9R12i-323gy1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorKey.hxy3:maxi197y3:mini185gy1:tr15goR3jR4:1:1oR5jR6:2:0R7y8:colorKeyR9jR10:5:2i4r9R12i-322gR15oR16R17R18i208R19i200gR20r21gR15oR16R17R18i208R19i185gR20r10gR15oR16R17R18i209R19i173gR20jR10:0:0goR3jR4:10:3oR3jR4:5:3jR13:9:0oR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:29:0R15oR16R17R18i223R19i218gR20jR10:13:1aoR1aoR7y1:_R9r10goR7y1:bR9jR10:5:2i4r9ghy3:retjR10:3:0ghgaoR3jR4:1:1r7R15oR16R17R18i223R19i218gR20r10goR3jR4:1:1r7R15oR16R17R18i233R19i228gR20r10ghR15oR16R17R18i234R19i218gR20r43goR3jR4:0:1jy10:hxsl.Const:3:1d1e-005R15oR16R17R18i244R19i237gR20r43gR15oR16R17R18i244R19i218gR20jR10:2:0goR3jR4:11:0R15oR16R17R18i254R19i247gR20r28gnR15oR16R17R18i254R19i214gR20r28ghR15oR16R17R18i260R19i167gR20r28gR5jy17:hxsl.FunctionKind:1:0y3:refoR5jR6:6:0R7y8:fragmentR9jR10:13:1aoR1ahR25r28ghR12i-324gR25r28ghR7y19:h3d.shader.ColorKeyy4:varsar19r14r69hg";
+h3d_shader_ColorMatrix.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey10:pixelColory4:typejy9:hxsl.Type:5:2i4jy12:hxsl.VecType:1:0y2:idi-326gy1:poy4:filey84:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FColorMatrix.hxy3:maxi184y3:mini174gy1:tr12goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:40:0R14oR15R16R17i191R18i187gR19jR11:13:1ahgaoR3jR4:9:2oR3jR4:3:1oR3jR4:5:3jR5:1:0oR3jR4:8:2oR3jR4:2:1r17R14oR15R16R17i198R18i194gR19r21gaoR3jR4:9:2oR3jR4:1:1r9R14oR15R16R17i209R18i199gR19r12gajy14:hxsl.Component:0:0jR21:1:0jR21:2:0hR14oR15R16R17i213R18i199gR19jR11:5:2i3r11goR3jR4:0:1jy10:hxsl.Const:3:1d1R14oR15R16R17i216R18i214gR19jR11:3:0ghR14oR15R16R17i217R18i194gR19jR11:5:2i4r11goR3jR4:1:1oR6jR7:2:0R8y6:matrixR10jR11:7:0R13i-327gR14oR15R16R17i226R18i220gR19r54gR14oR15R16R17i226R18i194gR19jR11:5:2i4r11gR14oR15R16R17i227R18i193gR19r59gar37r38r39hR14oR15R16R17i231R18i193gR19jR11:5:2i3r11goR3jR4:9:2oR3jR4:3:1oR3jR4:5:3r26oR3jR4:1:1r9R14oR15R16R17i244R18i234gR19r12goR3jR4:1:1r52R14oR15R16R17i253R18i247gR19r54gR14oR15R16R17i253R18i234gR19r59gR14oR15R16R17i254R18i233gR19r59gajR21:3:0hR14oR15R16R17i256R18i233gR19r47ghR14oR15R16R17i257R18i187gR19jR11:5:2i4r11gR14oR15R16R17i257R18i174gR19r12ghR14oR15R16R17i263R18i168gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahy3:retr90ghR13i-328gR27r90ghR8y22:h3d.shader.ColorMatrixy4:varsar9r52r92hg";
 h3d_shader_DirLight.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:7:2oy4:kindjy12:hxsl.VarKind:4:0y4:namey4:diffy4:typejy9:hxsl.Type:3:0y2:idi-54goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:22:0y1:poy4:filey81:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FDirLight.hxy3:maxi501y3:mini468gy1:tjR10:13:1aoR1aoR7y1:_R9r9goR7y1:bR9r9ghy3:retr9ghgaoR3jR4:8:2oR3jR4:2:1jR12:29:0R13oR14R15R16i485R17i468gR18jR10:13:1aoR1aoR7R19R9jR10:5:2i3jy12:hxsl.VecType:1:0goR7R20R9jR10:5:2i3r31ghR21r9ghgaoR3jR4:1:1oR5r8R7y17:transformedNormalR9r32R11i-47gR13oR14R15R16i485R17i468gR18r32goR3jR4:6:2jy15:haxe.macro.Unop:3:0oR3jR4:1:1oR5jR6:2:0R7y9:directionR9jR10:5:2i3r31R11i-41gR13oR14R15R16i500R17i491gR18r46gR13oR14R15R16i500R17i490gR18r46ghR13oR14R15R16i501R17i468gR18r9goR3jR4:0:1jy10:hxsl.Const:3:1d0R13oR14R15R16i508R17i506gR18r9ghR13oR14R15R16i509R17i468gR18r9gR13oR14R15R16i510R17i457gR18jR10:0:0goR3jR4:10:3oR3jR4:6:2jR24:2:0oR3jR4:1:1oR5r45R7y14:enableSpecularR9jR10:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR11i-42gR13oR14R15R16i534R17i520gR18r67gR13oR14R15R16i534R17i519gR18r67goR3jR4:12:1oR3jR4:5:3jy16:haxe.macro.Binop:1:0oR3jR4:1:1oR5r45R7y5:colorR9jR10:5:2i3r31R11i-40gR13oR14R15R16i554R17i549gR18r79goR3jR4:1:1r7R13oR14R15R16i561R17i557gR18r9gR13oR14R15R16i561R17i549gR18r79gR13oR14R15R16i561R17i542gR18r61gnR13oR14R15R16i561R17i515gR18r61goR3jR4:7:2oR5r8R7y1:rR9r34R11i-55goR3jR4:8:2oR3jR4:2:1jR12:31:0R13oR14R15R16i612R17i575gR18jR10:13:1aoR1aoR7R19R9r34ghR21r34ghgaoR3jR4:8:2oR3jR4:2:1jR12:32:0R13oR14R15R16i582R17i575gR18jR10:13:1aoR1aoR7y1:aR9r34goR7R20R9r34ghR21r34ghgaoR3jR4:1:1r44R13oR14R15R16i592R17i583gR18r46goR3jR4:1:1r38R13oR14R15R16i611R17i594gR18r32ghR13oR14R15R16i612R17i575gR18r34ghR13oR14R15R16i624R17i575gR18r34gR13oR14R15R16i625R17i567gR18r61goR3jR4:7:2oR5r8R7y9:specValueR9r9R11i-56goR3jR4:8:2oR3jR4:2:1r12R13oR14R15R16i704R17i646gR18jR10:13:1aoR1aoR7R19R9r9gr19hR21r9ghgaoR3jR4:8:2oR3jR4:2:1r24R13oR14R15R16i647R17i646gR18jR10:13:1aoR1aoR7R19R9r34gr33hR21r9ghgaoR3jR4:1:1r92R13oR14R15R16i647R17i646gR18r34goR3jR4:8:2oR3jR4:2:1r95R13oR14R15R16i691R17i652gR18jR10:13:1aoR1aoR7R19R9jR10:5:2i3r31ghR21r34ghgaoR3jR4:3:1oR3jR4:5:3jR30:3:0oR3jR4:1:1oR5jR6:0:0R7y8:positionR9jR10:5:2i3r31y6:parentoR5r169R7y6:cameraR9jR10:12:1ar168hR11i-43gR11i-44gR13oR14R15R16i668R17i653gR18r170goR3jR4:1:1oR5r8R7y19:transformedPositionR9jR10:5:2i3r31R11i-48gR13oR14R15R16i690R17i671gR18r178gR13oR14R15R16i690R17i653gR18r161gR13oR14R15R16i691R17i652gR18r161ghR13oR14R15R16i703R17i652gR18r34ghR13oR14R15R16i704R17i646gR18r9goR3jR4:0:1jR26:3:1d0R13oR14R15R16i711R17i709gR18r9ghR13oR14R15R16i712R17i646gR18r9gR13oR14R15R16i713R17i630gR18r61goR3jR4:12:1oR3jR4:5:3r76oR3jR4:1:1r78R13oR14R15R16i730R17i725gR18r79goR3jR4:3:1oR3jR4:5:3jR30:0:0oR3jR4:1:1r7R13oR14R15R16i738R17i734gR18r9goR3jR4:5:3r76oR3jR4:1:1oR5r8R7y9:specColorR9jR10:5:2i3r31R11i-50gR13oR14R15R16i750R17i741gR18r211goR3jR4:8:2oR3jR4:2:1jR12:8:0R13oR14R15R16i756R17i753gR18jR10:13:1aoR1aoR7R33R9r9gr19hR21r9ghgaoR3jR4:1:1r129R13oR14R15R16i766R17i757gR18r9goR3jR4:1:1oR5r8R7y9:specPowerR9r9R11i-49gR13oR14R15R16i777R17i768gR18r9ghR13oR14R15R16i778R17i753gR18r9gR13oR14R15R16i778R17i741gR18r211gR13oR14R15R16i778R17i734gR18r211gR13oR14R15R16i779R17i733gR18r211gR13oR14R15R16i779R17i725gR18jR10:5:2i3r31gR13oR14R15R16i779R17i718gR18r61ghR13oR14R15R16i785R17i451gR18r61gR5jy17:hxsl.FunctionKind:3:0y3:refoR5jR6:6:0R7y12:calcLightingR9jR10:13:1aoR1ahR21jR10:5:2i3r31ghR11i-51gR21r253goR1ahR2oR3jR4:4:1aoR3jR4:5:3jR30:20:1r204oR3jR4:9:2oR3jR4:1:1oR5r8R7y10:lightColorR9jR10:5:2i3r31R11i-45gR13oR14R15R16i825R17i815gR18r264gajy14:hxsl.Component:0:0jR45:1:0jR45:2:0hR13oR14R15R16i829R17i815gR18jR10:5:2i3r31goR3jR4:8:2oR3jR4:1:1r248R13oR14R15R16i845R17i833gR18r254gahR13oR14R15R16i847R17i833gR18r253gR13oR14R15R16i847R17i815gR18r273ghR13oR14R15R16i853R17i809gR18r61gR5jR41:0:0R42oR5r249R7y6:vertexR9jR10:13:1aoR1ahR21r61ghR11i-52gR21r61goR1ahR2oR3jR4:4:1aoR3jR4:5:3jR30:20:1r204oR3jR4:9:2oR3jR4:1:1oR5r8R7y15:lightPixelColorR9jR10:5:2i3r31R11i-46gR13oR14R15R16i900R17i885gR18r300gar268r269r270hR13oR14R15R16i904R17i885gR18jR10:5:2i3r31goR3jR4:8:2oR3jR4:1:1r248R13oR14R15R16i920R17i908gR18r254gahR13oR14R15R16i922R17i908gR18r253gR13oR14R15R16i922R17i885gR18r306ghR13oR14R15R16i928R17i879gR18r61gR5jR41:1:0R42oR5r249R7y8:fragmentR9jR10:13:1aoR1ahR21r61ghR11i-53gR21r61ghR7y19:h3d.shader.DirLighty4:varsar78r44r66r171r263r299r38r177r229r210r248r286r319hg";
 h3d_shader_LineShader.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:4:1aoR3jR4:7:2oy4:kindjy12:hxsl.VarKind:4:0y4:namey3:diry4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-136goR3jR4:5:3jy16:haxe.macro.Binop:1:0oR3jR4:1:1oR5jR6:1:0R7y6:normalR9jR10:5:2i3r11y6:parentoR5r17R7y5:inputR9jR10:12:1aoR5r17R7y8:positionR9jR10:5:2i3r11R15r19R12i-123gr16oR5r17R7y2:uvR9jR10:5:2i2r11R15r19R12i-125ghR12i-122gR12i-124gy1:poy4:filey83:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FLineShader.hxy3:maxi683y3:mini671gy1:tr18goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:48:0R19oR20R21R22i702R23i686gR24jR10:13:1ahgaoR3jR4:1:1oR5jR6:0:0R7y9:modelViewR9jR10:7:0R15oR5r38R7y6:globalR9jR10:12:1aoR5r38R7y9:pixelSizeR9jR10:5:2i2r11R15r40R12i-120gr37hR12i-119gy10:qualifiersajy17:hxsl.VarQualifier:3:0hR12i-121gR19oR20R21R22i702R23i686gR24r39ghR19oR20R21R22i709R23i686gR24jR10:6:0gR19oR20R21R22i709R23i671gR24r12gR19oR20R21R22i710R23i661gR24jR10:0:0goR3jR4:5:3jR13:4:0oR3jR4:1:1oR5r10R7y4:pdirR9jR10:5:2i4r11R12i-133gR19oR20R21R22i734R23i730gR24r61goR3jR4:5:3r14oR3jR4:8:2oR3jR4:2:1jR25:40:0R19oR20R21R22i741R23i737gR24jR10:13:1ahgaoR3jR4:5:3r14oR3jR4:1:1r9R19oR20R21R22i745R23i742gR24r12goR3jR4:8:2oR3jR4:2:1r30R19oR20R21R22i752R23i748gR24jR10:13:1ahgaoR3jR4:1:1oR5r38R7y4:viewR9r39R15oR5r38R7y6:cameraR9jR10:12:1ar85oR5r38R7y4:projR9r39R15r86R12i-117goR5r38R7y8:viewProjR9r39R15r86R12i-118ghR12i-115gR12i-116gR19oR20R21R22i764R23i753gR24r39ghR19oR20R21R22i765R23i748gR24r51gR19oR20R21R22i765R23i742gR24r12goR3jR4:0:1jy10:hxsl.Const:3:1i1R19oR20R21R22i768R23i767gR24jR10:3:0ghR19oR20R21R22i769R23i737gR24jR10:5:2i4r11goR3jR4:1:1r88R19oR20R21R22i783R23i772gR24r39gR19oR20R21R22i783R23i737gR24jR10:5:2i4r11gR19oR20R21R22i783R23i730gR24r61goR3jR4:5:3jR13:20:1r14oR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i794R23i790gR24r61gajy14:hxsl.Component:0:0jR37:1:0hR19oR20R21R22i797R23i790gR24jR10:5:2i2r11goR3jR4:5:3jR13:2:0oR3jR4:0:1jR36:3:1i1R19oR20R21R22i802R23i801gR24r101goR3jR4:8:2oR3jR4:2:1jR25:13:0R19oR20R21R22i809R23i805gR24jR10:13:1aoR1aoR7y5:valueR9r101ghy3:retr101ghgaoR3jR4:5:3jR13:0:0oR3jR4:5:3r14oR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i814R23i810gR24r61gar120hR19oR20R21R22i816R23i810gR24r101goR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i823R23i819gR24r61gar120hR19oR20R21R22i825R23i819gR24r101gR19oR20R21R22i825R23i810gR24r101goR3jR4:5:3r14oR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i832R23i828gR24r61gar121hR19oR20R21R22i834R23i828gR24r101goR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i841R23i837gR24r61gar121hR19oR20R21R22i843R23i837gR24r101gR19oR20R21R22i843R23i828gR24r101gR19oR20R21R22i843R23i810gR24r101ghR19oR20R21R22i844R23i805gR24r101gR19oR20R21R22i844R23i801gR24r101gR19oR20R21R22i844R23i790gR24r124goR3jR4:5:3jR13:20:1r143oR3jR4:1:1oR5r10R7y19:transformedPositionR9jR10:5:2i3r11R12i-129gR19oR20R21R22i870R23i851gR24r190goR3jR4:5:3r14oR3jR4:5:3r14oR3jR4:1:1r9R19oR20R21R22i877R23i874gR24r12goR3jR4:9:2oR3jR4:1:1r23R19oR20R21R22i888R23i880gR24r24gar120hR19oR20R21R22i890R23i880gR24r101gR19oR20R21R22i890R23i874gR24r12goR3jR4:1:1oR5jR6:2:0R7y11:lengthScaleR9r101R12i-131gR19oR20R21R22i904R23i893gR24r101gR19oR20R21R22i904R23i874gR24r12gR19oR20R21R22i904R23i851gR24r190goR3jR4:5:3r58oR3jR4:1:1oR5r10R7y17:transformedNormalR9jR10:5:2i3r11R12i-128gR19oR20R21R22i928R23i911gR24r219goR3jR4:8:2oR3jR4:2:1jR25:31:0R19oR20R21R22i934R23i931gR24jR10:13:1aoR1aoR7y1:_R9r12ghR39r12ghgaoR3jR4:1:1r9R19oR20R21R22i934R23i931gR24r12ghR19oR20R21R22i946R23i931gR24r12gR19oR20R21R22i946R23i911gR24r219ghR19oR20R21R22i953R23i654gR24r56ghR19oR20R21R22i958R23i648gR24r56gR5jy17:hxsl.FunctionKind:2:0y3:refoR5jR6:6:0R7y8:__init__R9jR10:13:1aoR1ahR39r56ghR12i-134gR39r56goR1ahR2oR3jR4:4:1aoR3jR4:5:3jR13:20:1r143oR3jR4:9:2oR3jR4:1:1oR5r10R7y17:projectedPositionR9jR10:5:2i4r11R12i-130gR19oR20R21R22i1005R23i988gR24r260gar120r121hR19oR20R21R22i1008R23i988gR24jR10:5:2i2r11goR3jR4:5:3r14oR3jR4:5:3r14oR3jR4:5:3r14oR3jR4:5:3r14oR3jR4:3:1oR3jR4:5:3r14oR3jR4:9:2oR3jR4:1:1r60R19oR20R21R22i1017R23i1013gR24r61gar121r120hR19oR20R21R22i1020R23i1013gR24jR10:5:2i2r11goR3jR4:8:2oR3jR4:2:1jR25:38:0R19oR20R21R22i1027R23i1023gR24jR10:13:1ahgaoR3jR4:0:1jR36:3:1i1R19oR20R21R22i1029R23i1028gR24r101goR3jR4:0:1jR36:3:1i-1R19oR20R21R22i1032R23i1030gR24r101ghR19oR20R21R22i1033R23i1023gR24jR10:5:2i2r11gR19oR20R21R22i1033R23i1013gR24jR10:5:2i2r11gR19oR20R21R22i1034R23i1012gR24r302goR3jR4:3:1oR3jR4:5:3jR13:3:0oR3jR4:9:2oR3jR4:1:1r23R19oR20R21R22i1046R23i1038gR24r24gar121hR19oR20R21R22i1048R23i1038gR24r101goR3jR4:0:1jR36:3:1d0.5R19oR20R21R22i1054R23i1051gR24r101gR19oR20R21R22i1054R23i1038gR24r101gR19oR20R21R22i1055R23i1037gR24r101gR19oR20R21R22i1055R23i1012gR24r302goR3jR4:9:2oR3jR4:1:1r259R19oR20R21R22i1075R23i1058gR24r260gajR37:2:0hR19oR20R21R22i1077R23i1058gR24r101gR19oR20R21R22i1077R23i1012gR24r302goR3jR4:1:1r42R19oR20R21R22i1096R23i1080gR24r43gR19oR20R21R22i1096R23i1012gR24jR10:5:2i2r11goR3jR4:1:1oR5r209R7y5:widthR9r101R12i-132gR19oR20R21R22i1104R23i1099gR24r101gR19oR20R21R22i1104R23i1012gR24r340gR19oR20R21R22i1104R23i988gR24r266ghR19oR20R21R22i1110R23i982gR24r56gR5jR44:0:0R45oR5r246R7y6:vertexR9jR10:13:1aoR1ahR39r56ghR12i-135gR39r56ghR7y21:h3d.shader.LineShadery4:varsar86r40r19oR5r10R7y6:outputR9jR10:12:1aoR5r10R7R17R9jR10:5:2i4r11R15r358R12i-127ghR12i-126gr218r189r259r208r342r60r245r352hg";
 h3d_shader_Shadow.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:10:3oR3jR4:6:2jy15:haxe.macro.Unop:2:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:2:0y4:namey8:perPixely4:typejy9:hxsl.Type:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhy2:idi-268gy1:poy4:filey79:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FShadow.hxy3:maxi414y3:mini406gy1:tr12gR15oR16R17R18i414R19i405gR20r12goR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oR6jR7:3:0R8y9:shadowPosR10jR11:5:2i3jy12:hxsl.VecType:1:0R12ajR13:1:0hR14i-267gR15oR16R17R18i426R19i417gR20r25goR3jR4:5:3jR21:0:0oR3jR4:5:3jR21:1:0oR3jR4:5:3r33oR3jR4:1:1oR6jR7:4:0R8y19:transformedPositionR10jR11:5:2i3r24R14i-265gR15oR16R17R18i448R19i429gR20r38goR3jR4:1:1oR6jR7:0:0R8y4:projR10jR11:8:0y6:parentoR6r43R8y6:shadowR10jR11:12:1aoR6r43R8y3:mapR10jR11:15:1i1R26r45R14i-259gr42oR6r43R8y5:colorR10jR11:5:2i3r24R26r45R14i-261goR6r43R8y5:powerR10jR11:3:0R26r45R14i-262goR6r43R8y4:biasR10r52R26r45R14i-263ghR14i-258gR14i-260gR15oR16R17R18i462R19i451gR20r44gR15oR16R17R18i462R19i429gR20jR11:5:2i3r24goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:39:0R15oR16R17R18i469R19i465gR20jR11:13:1ahgaoR3jR4:0:1jy10:hxsl.Const:3:1d0.5R15oR16R17R18i473R19i470gR20r52goR3jR4:0:1jR33:3:1d-0.5R15oR16R17R18i479R19i475gR20r52goR3jR4:0:1jR33:3:1i1R15oR16R17R18i482R19i481gR20r52ghR15oR16R17R18i483R19i465gR20jR11:5:2i3r24gR15oR16R17R18i483R19i429gR20jR11:5:2i3r24goR3jR4:8:2oR3jR4:2:1r62R15oR16R17R18i490R19i486gR20r66gaoR3jR4:0:1jR33:3:1d0.5R15oR16R17R18i494R19i491gR20r52goR3jR4:0:1jR33:3:1d0.5R15oR16R17R18i499R19i496gR20r52goR3jR4:0:1jR33:3:1zR15oR16R17R18i502R19i501gR20r52ghR15oR16R17R18i503R19i486gR20jR11:5:2i3r24gR15oR16R17R18i503R19i429gR20jR11:5:2i3r24gR15oR16R17R18i503R19i417gR20r25gnR15oR16R17R18i503R19i401gR20jR11:0:0ghR15oR16R17R18i509R19i395gR20r113gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr113ghR14i-269gR37r113goR1ahR2oR3jR4:4:1aoR3jR4:7:2oR6r37R8R22R10jR11:5:2i3r24R14i-271goR3jR4:10:3oR3jR4:1:1r10R15oR16R17R18i571R19i563gR20r12goR3jR4:5:3r31oR3jR4:5:3r33oR3jR4:5:3r33oR3jR4:1:1oR6r37R8y24:pixelTransformedPositionR10jR11:5:2i3r24R14i-266gR15oR16R17R18i598R19i574gR20r139goR3jR4:1:1r42R15oR16R17R18i612R19i601gR20r44gR15oR16R17R18i612R19i574gR20r59goR3jR4:8:2oR3jR4:2:1r62R15oR16R17R18i619R19i615gR20r66gaoR3jR4:0:1jR33:3:1d0.5R15oR16R17R18i623R19i620gR20r52goR3jR4:0:1jR33:3:1d-0.5R15oR16R17R18i629R19i625gR20r52goR3jR4:0:1jR33:3:1i1R15oR16R17R18i632R19i631gR20r52ghR15oR16R17R18i633R19i615gR20jR11:5:2i3r24gR15oR16R17R18i633R19i574gR20jR11:5:2i3r24goR3jR4:8:2oR3jR4:2:1r62R15oR16R17R18i640R19i636gR20r66gaoR3jR4:0:1jR33:3:1d0.5R15oR16R17R18i644R19i641gR20r52goR3jR4:0:1jR33:3:1d0.5R15oR16R17R18i649R19i646gR20r52goR3jR4:0:1jR33:3:1zR15oR16R17R18i652R19i651gR20r52ghR15oR16R17R18i653R19i636gR20jR11:5:2i3r24gR15oR16R17R18i653R19i574gR20r129goR3jR4:1:1r22R15oR16R17R18i668R19i659gR20r25gR15oR16R17R18i668R19i559gR20r129gR15oR16R17R18i669R19i543gR20r113goR3jR4:7:2oR6r37R8y5:depthR10r52R14i-272goR3jR4:8:2oR3jR4:2:1jR32:61:0R15oR16R17R18i698R19i688gR20jR11:13:1aoR1aoR8y1:_R10r48goR8y2:uvR10jR11:5:2i2r24ghR37r52ghgaoR3jR4:1:1r47R15oR16R17R18i698R19i688gR20r48goR3jR4:9:2oR3jR4:1:1r128R15oR16R17R18i712R19i703gR20r129gajy14:hxsl.Component:0:0jR42:1:0hR15oR16R17R18i715R19i703gR20jR11:5:2i2r24ghR15oR16R17R18i716R19i688gR20r52gR15oR16R17R18i717R19i676gR20r113goR3jR4:7:2oR6r37R8y4:zMaxR10r52R14i-273goR3jR4:8:2oR3jR4:2:1jR32:51:0R15oR16R17R18i909R19i898gR20jR11:13:1aoR1aoR8R40R10r52ghR37r52ghgaoR3jR4:9:2oR3jR4:1:1r128R15oR16R17R18i907R19i898gR20r129gajR42:2:0hR15oR16R17R18i909R19i898gR20r52ghR15oR16R17R18i920R19i898gR20r52gR15oR16R17R18i921R19i887gR20r113goR3jR4:7:2oR6r37R8y5:deltaR10r52R14i-274goR3jR4:5:3jR21:3:0oR3jR4:8:2oR3jR4:2:1jR32:21:0R15oR16R17R18i959R19i938gR20jR11:13:1aoR1aoR8R40R10r52goR8y1:bR10r52ghR37r52ghgaoR3jR4:3:1oR3jR4:5:3r31oR3jR4:1:1r200R15oR16R17R18i944R19i939gR20r52goR3jR4:1:1r53R15oR16R17R18i958R19i947gR20r52gR15oR16R17R18i958R19i939gR20r52gR15oR16R17R18i959R19i938gR20r52goR3jR4:1:1r232R15oR16R17R18i968R19i964gR20r52ghR15oR16R17R18i969R19i938gR20r52goR3jR4:1:1r232R15oR16R17R18i976R19i972gR20r52gR15oR16R17R18i976R19i938gR20r52gR15oR16R17R18i977R19i926gR20r113goR3jR4:7:2oR6r37R8y5:shadeR10r52R14i-275goR3jR4:8:2oR3jR4:2:1r235R15oR16R17R18i1022R19i994gR20jR11:13:1aoR1aoR8R40R10r52ghR37r52ghgaoR3jR4:8:2oR3jR4:2:1jR32:9:0R15oR16R17R18i997R19i994gR20jR11:13:1aoR1aoR8y5:valueR10r52ghR37r52ghgaoR3jR4:5:3r33oR3jR4:1:1r51R15oR16R17R18i1011R19i999gR20r52goR3jR4:1:1r257R15oR16R17R18i1019R19i1014gR20r52gR15oR16R17R18i1019R19i999gR20r52ghR15oR16R17R18i1022R19i994gR20r52ghR15oR16R17R18i1033R19i994gR20r52gR15oR16R17R18i1034R19i982gR20r113goR3jR4:5:3jR21:20:1r33oR3jR4:9:2oR3jR4:1:1oR6r37R8y10:pixelColorR10jR11:5:2i4r24R14i-264gR15oR16R17R18i1049R19i1039gR20r339gar222r223r249hR15oR16R17R18i1053R19i1039gR20jR11:5:2i3r24goR3jR4:5:3r31oR3jR4:5:3r33oR3jR4:3:1oR3jR4:5:3r259oR3jR4:0:1jR33:3:1i1R15oR16R17R18i1059R19i1058gR20r52goR3jR4:1:1r297R15oR16R17R18i1067R19i1062gR20r52gR15oR16R17R18i1067R19i1058gR20r52gR15oR16R17R18i1068R19i1057gR20r52goR3jR4:9:2oR3jR4:1:1r49R15oR16R17R18i1083R19i1071gR20r50gar222r223r249hR15oR16R17R18i1087R19i1071gR20jR11:5:2i3r24gR15oR16R17R18i1087R19i1057gR20r368goR3jR4:1:1r297R15oR16R17R18i1095R19i1090gR20r52gR15oR16R17R18i1095R19i1057gR20r368gR15oR16R17R18i1095R19i1039gR20r345ghR15oR16R17R18i1101R19i535gR20r113gR6jR34:1:0R35oR6r118R8y8:fragmentR10jR11:13:1aoR1ahR37r113ghR14i-270gR37r113ghR8y17:h3d.shader.Shadowy4:varsar45r338r36r138r22r10r117r381hg";
-h3d_shader_SinusDeform.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:20:1jR5:0:0oR3jR4:9:2oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey12:calculatedUVy4:typejy9:hxsl.Type:5:2i2jy12:hxsl.VecType:1:0y2:idi-284gy1:poy4:filey84:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FSinusDeform.hxy3:maxi285y3:mini273gy1:tr14gajy14:hxsl.Component:0:0hR14oR15R16R17i287R18i273gR19jR11:3:0goR3jR4:5:3jR5:1:0oR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:2:0R14oR15R16R17i294R18i291gR19jR11:13:1aoR1aoR8y5:valueR10r21ghy3:retr21ghgaoR3jR4:5:3r7oR3jR4:5:3r23oR3jR4:9:2oR3jR4:1:1r11R14oR15R16R17i307R18i295gR19r14gajR20:1:0hR14oR15R16R17i309R18i295gR19r21goR3jR4:1:1oR6jR7:2:0R8y9:frequencyR10r21R13i-282gR14oR15R16R17i321R18i312gR19r21gR14oR15R16R17i321R18i295gR19r21goR3jR4:5:3r23oR3jR4:1:1oR6jR7:0:0R8y4:timeR10r21R13i-280gR14oR15R16R17i328R18i324gR19r21goR3jR4:1:1oR6r47R8y5:speedR10r21R13i-281gR14oR15R16R17i336R18i331gR19r21gR14oR15R16R17i336R18i324gR19r21gR14oR15R16R17i336R18i295gR19r21ghR14oR15R16R17i337R18i291gR19r21goR3jR4:1:1oR6r47R8y9:amplitudeR10r21R13i-283gR14oR15R16R17i349R18i340gR19r21gR14oR15R16R17i349R18i291gR19r21gR14oR15R16R17i349R18i273gR19r21ghR14oR15R16R17i355R18i267gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahR23r78ghR13i-285gR23r78ghR8y22:h3d.shader.SinusDeformy4:varsar54r59r46r69r11r80hg";
 h3d_shader_Skin.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey19:transformedPositiony4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-143gy1:poy4:filey77:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FSkin.hxy3:maxi546y3:mini527gy1:tr12goR3jR4:5:3jR5:0:0oR3jR4:5:3r16oR3jR4:5:3jR5:1:0oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1oR6r10R8y16:relativePositionR10jR11:5:2i3r11R13i-142gR14oR15R16R17i571R18i555gR19r24goR3jR4:16:2oR3jR4:1:1oR6jR7:2:0R8y13:bonesMatrixesR10jR11:14:2jR11:8:0jy13:hxsl.SizeDecl:1:1oR6r30R8y8:MaxBonesR10jR11:1:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR13i-145gR24ajR25:8:0hR13i-146gR14oR15R16R17i587R18i574gR19r37goR3jR4:9:2oR3jR4:1:1oR6jR7:1:0R8y7:indexesR10jR11:9:1i4y6:parentoR6r45R8y5:inputR10jR11:12:1aoR6r45R8y8:positionR10jR11:5:2i3r11R27r47R13i-138goR6r45R8y6:normalR10jR11:5:2i3r11R27r47R13i-139goR6r45R8y7:weightsR10jR11:5:2i3r11R27r47R13i-140gr44hR13i-137gR13i-141gR14oR15R16R17i601R18i588gR19r46gajy14:hxsl.Component:0:0hR14oR15R16R17i603R18i588gR19r33gR14oR15R16R17i604R18i574gR19r31gR14oR15R16R17i604R18i555gR19jR11:5:2i3r11gR14oR15R16R17i605R18i554gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i621R18i608gR19r54gar59hR14oR15R16R17i623R18i608gR19jR11:3:0gR14oR15R16R17i623R18i554gR19r66goR3jR4:5:3r19oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1r23R14oR15R16R17i648R18i632gR19r24goR3jR4:16:2oR3jR4:1:1r29R14oR15R16R17i664R18i651gR19r37goR3jR4:9:2oR3jR4:1:1r44R14oR15R16R17i678R18i665gR19r46gajR32:1:0hR14oR15R16R17i680R18i665gR19r33gR14oR15R16R17i681R18i651gR19r31gR14oR15R16R17i681R18i632gR19r66gR14oR15R16R17i682R18i631gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i698R18i685gR19r54gar94hR14oR15R16R17i700R18i685gR19r76gR14oR15R16R17i700R18i631gR19r66gR14oR15R16R17i700R18i554gR19jR11:5:2i3r11goR3jR4:5:3r19oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1r23R14oR15R16R17i725R18i709gR19r24goR3jR4:16:2oR3jR4:1:1r29R14oR15R16R17i741R18i728gR19r37goR3jR4:9:2oR3jR4:1:1r44R14oR15R16R17i755R18i742gR19r46gajR32:2:0hR14oR15R16R17i757R18i742gR19r33gR14oR15R16R17i758R18i728gR19r31gR14oR15R16R17i758R18i709gR19r66gR14oR15R16R17i759R18i708gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i775R18i762gR19r54gar130hR14oR15R16R17i777R18i762gR19r76gR14oR15R16R17i777R18i708gR19r66gR14oR15R16R17i777R18i554gR19jR11:5:2i3r11gR14oR15R16R17i777R18i527gR19r12goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y17:transformedNormalR10jR11:5:2i3r11R13i-144gR14oR15R16R17i800R18i783gR19r156goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:31:0R14oR15R16R17i812R18i803gR19jR11:13:1aoR1aoR8y5:valueR10r66ghy3:retr66ghgaoR3jR4:5:3r16oR3jR4:5:3r16oR3jR4:5:3r19oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1r51R14oR15R16R17i832R18i820gR19r52goR3jR4:8:2oR3jR4:2:1jR34:48:0R14oR15R16R17i839R18i835gR19jR11:13:1ahgaoR3jR4:16:2oR3jR4:1:1r29R14oR15R16R17i853R18i840gR19r37goR3jR4:9:2oR3jR4:1:1r44R14oR15R16R17i867R18i854gR19r46gar59hR14oR15R16R17i869R18i854gR19r33gR14oR15R16R17i870R18i840gR19r31ghR14oR15R16R17i871R18i835gR19jR11:6:0gR14oR15R16R17i871R18i820gR19r66gR14oR15R16R17i872R18i819gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i888R18i875gR19r54gar59hR14oR15R16R17i890R18i875gR19r76gR14oR15R16R17i890R18i819gR19r66goR3jR4:5:3r19oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1r51R14oR15R16R17i911R18i899gR19r52goR3jR4:8:2oR3jR4:2:1r180R14oR15R16R17i918R18i914gR19r184gaoR3jR4:16:2oR3jR4:1:1r29R14oR15R16R17i932R18i919gR19r37goR3jR4:9:2oR3jR4:1:1r44R14oR15R16R17i946R18i933gR19r46gar94hR14oR15R16R17i948R18i933gR19r33gR14oR15R16R17i949R18i919gR19r31ghR14oR15R16R17i950R18i914gR19r201gR14oR15R16R17i950R18i899gR19r66gR14oR15R16R17i951R18i898gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i967R18i954gR19r54gar94hR14oR15R16R17i969R18i954gR19r76gR14oR15R16R17i969R18i898gR19r66gR14oR15R16R17i969R18i819gR19jR11:5:2i3r11goR3jR4:5:3r19oR3jR4:3:1oR3jR4:5:3r19oR3jR4:1:1r51R14oR15R16R17i990R18i978gR19r52goR3jR4:8:2oR3jR4:2:1r180R14oR15R16R17i997R18i993gR19r184gaoR3jR4:16:2oR3jR4:1:1r29R14oR15R16R17i1011R18i998gR19r37goR3jR4:9:2oR3jR4:1:1r44R14oR15R16R17i1025R18i1012gR19r46gar130hR14oR15R16R17i1027R18i1012gR19r33gR14oR15R16R17i1028R18i998gR19r31ghR14oR15R16R17i1029R18i993gR19r201gR14oR15R16R17i1029R18i978gR19r66gR14oR15R16R17i1030R18i977gR19r66goR3jR4:9:2oR3jR4:1:1r53R14oR15R16R17i1046R18i1033gR19r54gar130hR14oR15R16R17i1048R18i1033gR19r76gR14oR15R16R17i1048R18i977gR19r66gR14oR15R16R17i1048R18i819gR19jR11:5:2i3r11ghR14oR15R16R17i1049R18i803gR19r66gR14oR15R16R17i1049R18i783gR19r156ghR14oR15R16R17i1064R18i428gR19jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahR36r305ghR13i-147gR36r305ghR8y15:h3d.shader.Skiny4:varsar47r23r9r155r32r29r307hg";
 h3d_shader_SpecularTexture.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:20:1jR5:1:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey9:specColory4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-59gy1:poy4:filey88:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FSpecularTexture.hxy3:maxi218y3:mini209gy1:tr13goR3jR4:9:2oR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:33:0R14oR15R16R17i229R18i222gR19jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8y2:uvR10jR11:5:2i2r12ghy3:retjR11:5:2i4r12ghgaoR3jR4:1:1oR6jR7:2:0R8y7:textureR10r26R13i-57gR14oR15R16R17i229R18i222gR19r26goR3jR4:1:1oR6r11R8y12:calculatedUVR10jR11:5:2i2r12R13i-58gR14oR15R16R17i246R18i234gR19r39ghR14oR15R16R17i247R18i222gR19r29gajy14:hxsl.Component:0:0jR26:1:0jR26:2:0hR14oR15R16R17i251R18i222gR19jR11:5:2i3r12gR14oR15R16R17i251R18i209gR19r13ghR14oR15R16R17i257R18i203gR19jR11:0:0gR6jy17:hxsl.FunctionKind:1:0y3:refoR6jR7:6:0R8y8:fragmentR10jR11:13:1aoR1ahR23r55ghR13i-60gR23r55ghR8y26:h3d.shader.SpecularTexturey4:varsar33r38r10r57hg";
 h3d_shader_Texture.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey12:calculatedUVy4:typejy9:hxsl.Type:5:2i2jy12:hxsl.VecType:1:0y2:idi-68gy1:poy4:filey80:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FTexture.hxy3:maxi443y3:mini431gy1:tr12goR3jR4:1:1oR6jR7:1:0R8y2:uvR10jR11:5:2i2r11y6:parentoR6r17R8y5:inputR10jR11:12:1ar16hR13i-61gR13i-62gR14oR15R16R17i454R18i446gR19r18gR14oR15R16R17i454R18i431gR19r12ghR14oR15R16R17i460R18i425gR19jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr28ghR13i-71gR26r28goR1ahR2oR3jR4:4:1aoR3jR4:7:2oR6r10R8y1:cR10jR11:5:2i4r11R13i-73goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:33:0R14oR15R16R17i507R18i500gR19jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8R20R10jR11:5:2i2r11ghR26r42ghgaoR3jR4:1:1oR6jR7:2:0R8y7:textureR10r52R13i-67gR14oR15R16R17i507R18i500gR19r52goR3jR4:1:1r9R14oR15R16R17i524R18i512gR19r12ghR14oR15R16R17i525R18i500gR19r42gR14oR15R16R17i526R18i492gR19r28goR3jR4:10:3oR3jR4:5:3jR5:14:0oR3jR4:1:1oR6r59R8y9:killAlphaR10jR11:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhR13i-64gR14oR15R16R17i544R18i535gR19r74goR3jR4:5:3jR5:9:0oR3jR4:5:3jR5:3:0oR3jR4:9:2oR3jR4:1:1r41R14oR15R16R17i549R18i548gR19r42gajy14:hxsl.Component:3:0hR14oR15R16R17i551R18i548gR19jR11:3:0goR3jR4:1:1oR6r59R8y18:killAlphaThresholdR10r91R32ajR33:7:2d0d1hR13i-66gR14oR15R16R17i572R18i554gR19r91gR14oR15R16R17i572R18i548gR19r91goR3jR4:0:1jy10:hxsl.Const:3:1zR14oR15R16R17i576R18i575gR19r91gR14oR15R16R17i576R18i548gR19r74gR14oR15R16R17i576R18i535gR19r74goR3jR4:11:0R14oR15R16R17i586R18i579gR19r28gnR14oR15R16R17i586R18i531gR19r28goR3jR4:10:3oR3jR4:1:1oR6r59R8y8:additiveR10r74R32ajR33:0:1nhR13i-63gR14oR15R16R17i604R18i596gR19r74goR3jR4:5:3jR5:20:1jR5:0:0oR3jR4:1:1oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-69gR14oR15R16R17i622R18i612gR19r125goR3jR4:1:1r41R14oR15R16R17i627R18i626gR19r42gR14oR15R16R17i627R18i612gR19r125goR3jR4:5:3jR5:20:1jR5:1:0oR3jR4:1:1r124R14oR15R16R17i653R18i643gR19r125goR3jR4:1:1r41R14oR15R16R17i658R18i657gR19r42gR14oR15R16R17i658R18i643gR19r125gR14oR15R16R17i658R18i592gR19r28goR3jR4:10:3oR3jR4:1:1oR6r59R8y13:specularAlphaR10r74R32ajR33:0:1nhR13i-65gR14oR15R16R17i681R18i668gR19r74goR3jR4:5:3jR5:20:1r134oR3jR4:1:1oR6r10R8y9:specColorR10jR11:5:2i3r11R13i-70gR14oR15R16R17i698R18i689gR19r157goR3jR4:9:2oR3jR4:1:1r41R14oR15R16R17i703R18i702gR19r42gar88r88r88hR14oR15R16R17i707R18i702gR19jR11:5:2i3r11gR14oR15R16R17i707R18i689gR19r157gnR14oR15R16R17i707R18i664gR19r28ghR14oR15R16R17i713R18i486gR19r28gR6jR23:1:0R24oR6r31R8y8:fragmentR10jR11:13:1aoR1ahR26r28ghR13i-72gR26r28ghR8y18:h3d.shader.Texturey4:varsar19r115r73r148r93r58r9r124r156r30r175hg";
 h3d_shader_UVDelta.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey12:calculatedUVy4:typejy9:hxsl.Type:5:2i2jy12:hxsl.VecType:1:0y2:idi-278gy1:poy4:filey80:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FUVDelta.hxy3:maxi209y3:mini197gy1:tr12goR3jR4:5:3jR5:0:0oR3jR4:5:3jR5:1:0oR3jR4:1:1r9R14oR15R16R17i224R18i212gR19r12goR3jR4:1:1oR6jR7:2:0R8y7:uvScaleR10jR11:5:2i2r11R13i-277gR14oR15R16R17i234R18i227gR19r25gR14oR15R16R17i234R18i212gR19jR11:5:2i2r11goR3jR4:1:1oR6r24R8y7:uvDeltaR10jR11:5:2i2r11R13i-276gR14oR15R16R17i244R18i237gR19r33gR14oR15R16R17i244R18i212gR19jR11:5:2i2r11gR14oR15R16R17i244R18i197gR19r12ghR14oR15R16R17i250R18i191gR19jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr43ghR13i-279gR25r43ghR8y18:h3d.shader.UVDeltay4:varsar32r23r9r45hg";
-h3d_shader_VertexColorAlpha.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:10:3oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:2:0y4:namey8:additivey4:typejy9:hxsl.Type:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhy2:idi-329gy1:poy4:filey89:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FVertexColorAlpha.hxy3:maxi245y3:mini237gy1:tr10goR3jR4:5:3jy16:haxe.macro.Binop:20:1jR20:0:0oR3jR4:1:1oR5jR6:4:0R7y10:pixelColorR9jR10:5:2i4jy12:hxsl.VecType:1:0R13i-328gR14oR15R16R17i263R18i253gR19r22goR3jR4:1:1oR5jR6:1:0R7y5:colorR9jR10:5:2i4r21y6:parentoR5r27R7y5:inputR9jR10:12:1ar26hR13i-326gR13i-327gR14oR15R16R17i278R18i267gR19r28gR14oR15R16R17i278R18i253gR19r22goR3jR4:5:3jR20:20:1jR20:1:0oR3jR4:1:1r19R14oR15R16R17i304R18i294gR19r22goR3jR4:1:1r26R14oR15R16R17i319R18i308gR19r28gR14oR15R16R17i319R18i294gR19r22gR14oR15R16R17i319R18i233gR19jR10:0:0ghR14oR15R16R17i325R18i227gR19r49gR5jy17:hxsl.FunctionKind:1:0y3:refoR5jR6:6:0R7y8:fragmentR9jR10:13:1aoR1ahy3:retr49ghR13i-330gR29r49ghR7y27:h3d.shader.VertexColorAlphay4:varsar29r19r8r53hg";
+h3d_shader_VertexColorAlpha.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:10:3oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:2:0y4:namey8:additivey4:typejy9:hxsl.Type:2:0y10:qualifiersajy17:hxsl.VarQualifier:0:1nhy2:idi-296gy1:poy4:filey89:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FVertexColorAlpha.hxy3:maxi245y3:mini237gy1:tr10goR3jR4:5:3jy16:haxe.macro.Binop:20:1jR20:0:0oR3jR4:1:1oR5jR6:4:0R7y10:pixelColorR9jR10:5:2i4jy12:hxsl.VecType:1:0R13i-295gR14oR15R16R17i263R18i253gR19r22goR3jR4:1:1oR5jR6:1:0R7y5:colorR9jR10:5:2i4r21y6:parentoR5r27R7y5:inputR9jR10:12:1ar26hR13i-293gR13i-294gR14oR15R16R17i278R18i267gR19r28gR14oR15R16R17i278R18i253gR19r22goR3jR4:5:3jR20:20:1jR20:1:0oR3jR4:1:1r19R14oR15R16R17i304R18i294gR19r22goR3jR4:1:1r26R14oR15R16R17i319R18i308gR19r28gR14oR15R16R17i319R18i294gR19r22gR14oR15R16R17i319R18i233gR19jR10:0:0ghR14oR15R16R17i325R18i227gR19r49gR5jy17:hxsl.FunctionKind:1:0y3:refoR5jR6:6:0R7y8:fragmentR9jR10:13:1aoR1ahy3:retr49ghR13i-297gR29r49ghR7y27:h3d.shader.VertexColorAlphay4:varsar29r19r8r53hg";
 h3d_shader_VolumeDecal.SRC = "oy4:funsaoy4:argsahy4:exproy1:ejy13:hxsl.TExprDef:4:1aoR3jR4:5:3jy16:haxe.macro.Binop:4:0oR3jR4:1:1oy4:kindjy12:hxsl.VarKind:4:0y4:namey17:transformedNormaly4:typejy9:hxsl.Type:5:2i3jy12:hxsl.VecType:1:0y2:idi-235gy1:poy4:filey84:D%3A%5CDevelopment%5CHaxe%5Chaxe%5Clib%5Cheaps%2Fgit%2Fh3d%2Fshader%2FVolumeDecal.hxy3:maxi282y3:mini265gy1:tr12goR3jR4:1:1oR6jR7:2:0R8y6:normalR10jR11:5:2i3r11R13i-248gR14oR15R16R17i291R18i285gR19r18gR14oR15R16R17i291R18i265gR19r12ghR14oR15R16R17i297R18i259gR19jR11:0:0gR6jy17:hxsl.FunctionKind:0:0y3:refoR6jR7:6:0R8y6:vertexR10jR11:13:1aoR1ahy3:retr25ghR13i-250gR24r25goR1ahR2oR3jR4:4:1aoR3jR4:7:2oR6r10R8y6:matrixR10jR11:7:0R13i-252goR3jR4:5:3jR5:1:0oR3jR4:1:1oR6jR7:0:0R8y15:inverseViewProjR10r39y6:parentoR6r44R8y6:cameraR10jR11:12:1aoR6r44R8y4:viewR10r39R27r45R13i-210goR6r44R8y4:projR10r39R27r45R13i-211goR6r44R8y8:positionR10jR11:5:2i3r11R27r45R13i-212goR6r44R8y8:projDiagR10jR11:5:2i3r11R27r45R13i-213goR6r44R8y8:viewProjR10r39R27r45R13i-214gr43oR6r44R8y5:zNearR10jR11:3:0R27r45R13i-216goR6r44R8y4:zFarR10r55R27r45R13i-217goR6jR7:3:0R8y3:dirR10jR11:5:2i3r11R27r45R13i-218ghR13i-209gR13i-215gR14oR15R16R17i364R18i342gR19r39goR3jR4:1:1oR6r44R8y16:modelViewInverseR10r39R27oR6r44R8y6:globalR10jR11:12:1aoR6r44R8y4:timeR10r55R27r65R13i-220goR6r44R8y9:pixelSizeR10jR11:5:2i2r11R27r65R13i-221goR6r44R8y9:modelViewR10r39R27r65y10:qualifiersajy17:hxsl.VarQualifier:3:0hR13i-222gr64hR13i-219gR42ar72hR13i-223gR14oR15R16R17i390R18i367gR19r39gR14oR15R16R17i390R18i342gR19r39gR14oR15R16R17i391R18i329gR19r25goR3jR4:7:2oR6r10R8y9:screenPosR10jR11:5:2i2r11R13i-253goR3jR4:5:3jR5:2:0oR3jR4:9:2oR3jR4:1:1oR6r10R8y17:projectedPositionR10jR11:5:2i4r11R13i-236gR14oR15R16R17i429R18i412gR19r89gajy14:hxsl.Component:0:0jR46:1:0hR14oR15R16R17i432R18i412gR19r83goR3jR4:9:2oR3jR4:1:1r88R14oR15R16R17i452R18i435gR19r89gajR46:3:0hR14oR15R16R17i454R18i435gR19r55gR14oR15R16R17i454R18i412gR19r83gR14oR15R16R17i455R18i396gR19r25goR3jR4:7:2oR6r10R8y3:tuvR10jR11:5:2i2r11R13i-254goR3jR4:5:3jR5:0:0oR3jR4:5:3r41oR3jR4:1:1r82R14oR15R16R17i479R18i470gR19r83goR3jR4:8:2oR3jR4:2:1jy12:hxsl.TGlobal:38:0R14oR15R16R17i486R18i482gR19jR11:13:1ahgaoR3jR4:0:1jy10:hxsl.Const:3:1d0.5R14oR15R16R17i490R18i487gR19r55goR3jR4:0:1jR49:3:1d-0.5R14oR15R16R17i496R18i492gR19r55ghR14oR15R16R17i497R18i482gR19jR11:5:2i2r11gR14oR15R16R17i497R18i470gR19jR11:5:2i2r11goR3jR4:8:2oR3jR4:2:1r120R14oR15R16R17i504R18i500gR19r124gaoR3jR4:0:1jR49:3:1d0.5R14oR15R16R17i508R18i505gR19r55goR3jR4:0:1jR49:3:1d0.5R14oR15R16R17i513R18i510gR19r55ghR14oR15R16R17i514R18i500gR19jR11:5:2i2r11gR14oR15R16R17i514R18i470gR19r111gR14oR15R16R17i515R18i460gR19r25goR3jR4:7:2oR6r10R8y3:ruvR10jR11:5:2i4r11R13i-255goR3jR4:8:2oR3jR4:2:1jR48:40:0R14oR15R16R17i534R18i530gR19jR11:13:1ahgaoR3jR4:1:1r82R14oR15R16R17i550R18i541gR19r83goR3jR4:8:2oR3jR4:2:1jR48:53:0R14oR15R16R17i563R18i557gR19jR11:13:1aoR1aoR8y5:valueR10jR11:5:2i4r11ghR24r55ghgaoR3jR4:8:2oR3jR4:2:1jR48:33:0R14oR15R16R17i572R18i564gR19jR11:13:1aoR1aoR8y1:_R10jR11:10:0goR8y2:uvR10jR11:5:2i2r11ghR24jR11:5:2i4r11ghgaoR3jR4:1:1oR6r44R8y8:depthMapR10r195R13i-246gR14oR15R16R17i572R18i564gR19r195goR3jR4:1:1r110R14oR15R16R17i580R18i577gR19r111ghR14oR15R16R17i581R18i564gR19r198ghR14oR15R16R17i582R18i557gR19r55goR3jR4:0:1jR49:3:1i1R14oR15R16R17i590R18i589gR19r55ghR14oR15R16R17i596R18i530gR19r162gR14oR15R16R17i597R18i520gR19r25goR3jR4:7:2oR6r10R8y4:wposR10r198R13i-256goR3jR4:5:3r41oR3jR4:1:1r161R14oR15R16R17i616R18i613gR19r162goR3jR4:1:1r38R14oR15R16R17i625R18i619gR19r39gR14oR15R16R17i625R18i613gR19r198gR14oR15R16R17i626R18i602gR19r25goR3jR4:7:2oR6r10R8y4:pposR10r198R13i-257goR3jR4:5:3r41oR3jR4:1:1r161R14oR15R16R17i645R18i642gR19r162goR3jR4:1:1r43R14oR15R16R17i670R18i648gR19r39gR14oR15R16R17i670R18i642gR19r198gR14oR15R16R17i671R18i631gR19r25goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y24:pixelTransformedPositionR10jR11:5:2i3r11R13i-234gR14oR15R16R17i700R18i676gR19r249goR3jR4:5:3r85oR3jR4:9:2oR3jR4:1:1r234R14oR15R16R17i707R18i703gR19r198gar93r94jR46:2:0hR14oR15R16R17i711R18i703gR19jR11:5:2i3r11goR3jR4:9:2oR3jR4:1:1r234R14oR15R16R17i718R18i714gR19r198gar102hR14oR15R16R17i720R18i714gR19r55gR14oR15R16R17i720R18i703gR19r261gR14oR15R16R17i720R18i676gR19r249goR3jR4:5:3r7oR3jR4:1:1oR6r10R8y12:calculatedUVR10jR11:5:2i2r11R13i-249gR14oR15R16R17i738R18i726gR19r276goR3jR4:5:3r113oR3jR4:5:3r41oR3jR4:1:1oR6r17R8y5:scaleR10jR11:5:2i2r11R13i-247gR14oR15R16R17i746R18i741gR19r283goR3jR4:3:1oR3jR4:5:3r85oR3jR4:9:2oR3jR4:1:1r221R14oR15R16R17i754R18i750gR19r198gar93r94hR14oR15R16R17i757R18i750gR19jR11:5:2i2r11goR3jR4:9:2oR3jR4:1:1r221R14oR15R16R17i764R18i760gR19r198gar102hR14oR15R16R17i766R18i760gR19r55gR14oR15R16R17i766R18i750gR19r295gR14oR15R16R17i767R18i749gR19r295gR14oR15R16R17i767R18i741gR19jR11:5:2i2r11goR3jR4:0:1jR49:3:1d0.5R14oR15R16R17i773R18i770gR19r55gR14oR15R16R17i773R18i741gR19r309gR14oR15R16R17i773R18i726gR19r276goR3jR4:10:3oR3jR4:5:3jR5:9:0oR3jR4:8:2oR3jR4:2:1jR48:21:0R14oR15R16R17i786R18i783gR19jR11:13:1aoR1aoR8y1:aR10r55goR8y1:bR10r55ghR24r55ghgaoR3jR4:8:2oR3jR4:2:1r323R14oR15R16R17i790R18i787gR19jR11:13:1ar327hgaoR3jR4:9:2oR3jR4:1:1r275R14oR15R16R17i803R18i791gR19r276gar93hR14oR15R16R17i805R18i791gR19r55goR3jR4:9:2oR3jR4:1:1r275R14oR15R16R17i819R18i807gR19r276gar94hR14oR15R16R17i821R18i807gR19r55ghR14oR15R16R17i822R18i787gR19r55goR3jR4:8:2oR3jR4:2:1r323R14oR15R16R17i827R18i824gR19jR11:13:1ar327hgaoR3jR4:5:3jR5:3:0oR3jR4:0:1jR49:3:1i1R14oR15R16R17i829R18i828gR19r55goR3jR4:9:2oR3jR4:1:1r275R14oR15R16R17i844R18i832gR19r276gar93hR14oR15R16R17i846R18i832gR19r55gR14oR15R16R17i846R18i828gR19r55goR3jR4:5:3r364oR3jR4:0:1jR49:3:1i1R14oR15R16R17i849R18i848gR19r55goR3jR4:9:2oR3jR4:1:1r275R14oR15R16R17i864R18i852gR19r276gar94hR14oR15R16R17i866R18i852gR19r55gR14oR15R16R17i866R18i848gR19r55ghR14oR15R16R17i867R18i824gR19r55ghR14oR15R16R17i868R18i783gR19r55goR3jR4:0:1jR49:3:1zR14oR15R16R17i872R18i871gR19r55gR14oR15R16R17i872R18i783gR19jR11:2:0goR3jR4:11:0R14oR15R16R17i882R18i875gR19r25gnR14oR15R16R17i882R18i779gR19r25ghR14oR15R16R17i888R18i323gR19r25gR6jR21:1:0R22oR6r28R8y8:fragmentR10jR11:13:1aoR1ahR24r25ghR13i-251gR24r25ghR8y22:h3d.shader.VolumeDecaly4:varsar45r65oR6jR7:1:0R8y5:inputR10jR11:12:1aoR6r418R8R31R10jR11:5:2i3r11R27r417R13i-225goR6r418R8R20R10jR11:5:2i3r11R27r417R13i-226ghR13i-224goR6r10R8y6:outputR10jR11:12:1aoR6r10R8R31R10jR11:5:2i4r11R27r425R13i-228goR6r10R8y5:colorR10jR11:5:2i4r11R27r425R13i-229goR6r10R8y5:depthR10r55R27r425R13i-230goR6r10R8R20R10jR11:5:2i3r11R27r425R13i-231ghR13i-227goR6r10R8y16:relativePositionR10jR11:5:2i3r11R13i-232goR6r10R8y19:transformedPositionR10jR11:5:2i3r11R13i-233gr248r9r88oR6r10R8y10:pixelColorR10jR11:5:2i4r11R13i-237goR6r10R8R68R10r55R13i-238goR6r10R8y8:screenUVR10jR11:5:2i2r11R13i-239goR6r10R8y9:specPowerR10r55R13i-240goR6r10R8y9:specColorR10jR11:5:2i3r11R13i-241gr202r282r16r275r27r411hg";
 haxe_EntryPoint.pending = [];
 haxe_EntryPoint.threadCount = 0;
