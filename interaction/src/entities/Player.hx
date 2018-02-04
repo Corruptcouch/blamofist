@@ -23,8 +23,8 @@ class Player
 	public function new(x,y) 
 	{
 		game = Game.inst;
-		this.x = x + 0.5;
-		this.y = y + 0.5;
+		this.x = x;
+		this.y = y;
 		sprite = new h2d.Bitmap(Res.player.idle.toTile());
 		sprite.scale(0.25);
 		sprite.tile.dx = -50;
@@ -34,14 +34,7 @@ class Player
 	
 	public var padActive = false;
 	
-	var rotationSpeed = Math.PI / 50;
-	
-	function calculateRadiansFromFacingInt(facingInt : Float) {
-		facingInt = Math.abs(facingInt);
-		var degrees = (facingInt % 6.0) * 360;
-		trace("DEGREES: " + degrees);
-		return degrees;
-	}
+	var rotationSpeed = 0.1;
 	
 	function updateMovement(dt:Float) {
 		var left = Key.isDown(Key.LEFT) || game.gamePad.xAxis < -0.5;
@@ -50,40 +43,41 @@ class Player
 		var down = Key.isDown(Key.DOWN) || game.gamePad.yAxis > 0.5;
 		
 		if (up) {
-			var degrees = calculateRadiansFromFacingInt(sprite.rotation);
-			if (degrees >= 0 && degrees <= 180) {
+			var degrees = sprite.rotation % 6;
+			if (degrees > 0) {
 				sprite.rotation -= rotationSpeed;
 			}
-			if (degrees >= 180 && degrees <= 360) {
+			if (degrees < 0) {
 				sprite.rotation += rotationSpeed;
 			}
 		}
 		
 		if (down) {
-			var degrees = calculateRadiansFromFacingInt(sprite.rotation);
-			if (degrees >= 0 && degrees <= 180) {
+			var degrees = sprite.rotation % 6;
+			degrees = Math.abs(degrees);
+			if (degrees > 3) {
 				sprite.rotation += rotationSpeed;
 			}
-			if (degrees >= 180 && degrees <= 360) {
+			if (degrees < 3) {
 				sprite.rotation -= rotationSpeed;
 			}
 		}
 		if (left) {
-			var degrees = calculateRadiansFromFacingInt(sprite.rotation);
-			if (degrees >= 270 && degrees <= 90) {
+			var degrees = sprite.rotation % 6;		
+			if (degrees > -4.5 || degrees < 1.5) {
 				sprite.rotation -= rotationSpeed;
 			}
-			if (degrees <= 270 && degrees >= 90) {
+			if (degrees < 4.5 || degrees > -1.5) {
 				sprite.rotation += rotationSpeed;
 			}
 		}
 		
 		if (right) {
-			var degrees = calculateRadiansFromFacingInt(sprite.rotation);
-			if (degrees >= 270 && degrees <= 90) {
+			var degrees = sprite.rotation % 6;
+			if (degrees > 4.5 && degrees < -1.5) {
 				sprite.rotation += rotationSpeed;
 			}
-			if (degrees <= 270 && degrees >= 90) {
+			if (degrees < -4.5 && degrees > 1.5) {
 				sprite.rotation -= rotationSpeed;
 			}
 		}

@@ -199,7 +199,7 @@ Game.prototype = $extend(hxd_App.prototype,{
 		this.parts = new environment_Parts(stiles);
 		var x = this.s2d.width / 2;
 		var y = this.s2d.height / 2;
-		this.player = new entities_Player(x,180);
+		this.player = new entities_Player(x,y);
 	}
 	,nextLevel: function() {
 		var _gthis = this;
@@ -834,13 +834,13 @@ Xml.prototype = {
 	,__class__: Xml
 };
 var entities_Player = function(x,y) {
-	this.rotationSpeed = Math.PI / 50;
+	this.rotationSpeed = 0.1;
 	this.padActive = false;
 	this.movingAmount = 0.;
 	this.time = 0.;
 	this.game = Game.inst;
-	this.x = x + 0.5;
-	this.y = y + 0.5;
+	this.x = x;
+	this.y = y;
 	var this1 = hxd_Res.get_loader();
 	this.sprite = new h2d_Bitmap(this1.loadImage("player/idle.png").toTile());
 	var _this = this.sprite;
@@ -857,64 +857,59 @@ var entities_Player = function(x,y) {
 $hxClasses["entities.Player"] = entities_Player;
 entities_Player.__name__ = ["entities","Player"];
 entities_Player.prototype = {
-	calculateRadiansFromFacingInt: function(facingInt) {
-		facingInt = Math.abs(facingInt);
-		var degrees = facingInt % 6.0 * 360;
-		haxe_Log.trace("DEGREES: " + degrees,{ fileName : "Player.hx", lineNumber : 42, className : "entities.Player", methodName : "calculateRadiansFromFacingInt"});
-		return degrees;
-	}
-	,updateMovement: function(dt) {
+	updateMovement: function(dt) {
 		var left = hxd_Key.isDown(37) || this.game.gamePad.xAxis < -0.5;
 		var right = hxd_Key.isDown(39) || this.game.gamePad.xAxis > 0.5;
 		var up = hxd_Key.isDown(38) || this.game.gamePad.yAxis < -0.5;
 		var down = hxd_Key.isDown(40) || this.game.gamePad.yAxis > 0.5;
 		if(up) {
-			var degrees = this.calculateRadiansFromFacingInt(this.sprite.rotation);
-			if(degrees >= 0 && degrees <= 180) {
+			var degrees = this.sprite.rotation % 6;
+			if(degrees > 0) {
 				var _g = this.sprite;
 				_g.posChanged = true;
 				_g.rotation -= this.rotationSpeed;
 			}
-			if(degrees >= 180 && degrees <= 360) {
+			if(degrees < 0) {
 				var _g1 = this.sprite;
 				_g1.posChanged = true;
 				_g1.rotation += this.rotationSpeed;
 			}
 		}
 		if(down) {
-			var degrees1 = this.calculateRadiansFromFacingInt(this.sprite.rotation);
-			if(degrees1 >= 0 && degrees1 <= 180) {
+			var degrees1 = this.sprite.rotation % 6;
+			degrees1 = Math.abs(degrees1);
+			if(degrees1 > 3) {
 				var _g2 = this.sprite;
 				_g2.posChanged = true;
 				_g2.rotation += this.rotationSpeed;
 			}
-			if(degrees1 >= 180 && degrees1 <= 360) {
+			if(degrees1 < 3) {
 				var _g3 = this.sprite;
 				_g3.posChanged = true;
 				_g3.rotation -= this.rotationSpeed;
 			}
 		}
 		if(left) {
-			var degrees2 = this.calculateRadiansFromFacingInt(this.sprite.rotation);
-			if(degrees2 >= 270 && degrees2 <= 90) {
+			var degrees2 = this.sprite.rotation % 6;
+			if(degrees2 > -4.5 || degrees2 < 1.5) {
 				var _g4 = this.sprite;
 				_g4.posChanged = true;
 				_g4.rotation -= this.rotationSpeed;
 			}
-			if(degrees2 <= 270 && degrees2 >= 90) {
+			if(degrees2 < 4.5 || degrees2 > -1.5) {
 				var _g5 = this.sprite;
 				_g5.posChanged = true;
 				_g5.rotation += this.rotationSpeed;
 			}
 		}
 		if(right) {
-			var degrees3 = this.calculateRadiansFromFacingInt(this.sprite.rotation);
-			if(degrees3 >= 270 && degrees3 <= 90) {
+			var degrees3 = this.sprite.rotation % 6;
+			if(degrees3 > 4.5 && degrees3 < -1.5) {
 				var _g6 = this.sprite;
 				_g6.posChanged = true;
 				_g6.rotation += this.rotationSpeed;
 			}
-			if(degrees3 <= 270 && degrees3 >= 90) {
+			if(degrees3 < -4.5 && degrees3 > 1.5) {
 				var _g7 = this.sprite;
 				_g7.posChanged = true;
 				_g7.rotation -= this.rotationSpeed;

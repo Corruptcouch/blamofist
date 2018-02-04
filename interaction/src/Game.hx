@@ -70,9 +70,10 @@ class Game extends App
 		sSmallTile.scaleToSize(10, 10);
 		var stiles = [sBigTile, sSmallTile];
 		parts = new Parts(stiles);
+		
 		var x = (s2d.width / 2);
 		var y = (s2d.height / 2);
-		player = new Player(x, 180);
+		player = new Player(x, y);
 	}
 	
 	function nextLevel() {
