@@ -34,7 +34,7 @@ class Parts
 	}
 	
 	public function update(dt: Float) {
-		var currentWay = 1;
+		var currentWay = game.player != null && game.player.movingAmount < 0 ? game.player.movingAmount * 20 : 1;
 		game.way = hxd.Math.lerp(game.way, currentWay, 1 - Math.pow(0.5, dt));
 		
 		for (c in envParts) {

@@ -1,4 +1,5 @@
 package;
+import entities.Player;
 import environment.Parts;
 import h2d.Bitmap;
 import h2d.Layers;
@@ -34,6 +35,8 @@ class Game extends App
 	
 	var way : Float = 1.;
 	
+	public var player : Player;
+	
 	var parts : Parts;
 	
 	override function init() {
@@ -67,14 +70,14 @@ class Game extends App
 		sSmallTile.scaleToSize(10, 10);
 		var stiles = [sBigTile, sSmallTile];
 		parts = new Parts(stiles);
-		trace(parts);
+		var x = (s2d.width / 2);
+		var y = (s2d.height / 2);
+		player = new Player(x, 180);
 	}
 	
 	function nextLevel() {
 		haxe.Timer.delay(function() {
-			trace(currentLevel);
 			currentLevel++;
-			trace(currentLevel);
 			initLevel();
 		},0);
 	}
@@ -82,6 +85,10 @@ class Game extends App
 	override function update( dt : Float) {
 		if (parts != null) {
 			parts.update(dt);
+		}
+		
+		if (player != null) {
+			player.update(dt);
 		}
 		
 		if ( title != null && title.getAlpha() < 1 )  {
@@ -99,7 +106,6 @@ class Game extends App
 				|| Key.isPressed(Key.SPACE) 
 				|| gamePad.isPressed(hxd.Pad.DEFAULT_CONFIG.A) 
 				|| gamePad.isPressed(hxd.Pad.DEFAULT_CONFIG.B) ) {
-				//currentLevel--;
 				title.setAlpha(0.99);
 				nextLevel();
 			}
