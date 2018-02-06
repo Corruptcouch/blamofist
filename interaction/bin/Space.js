@@ -863,57 +863,40 @@ entities_Player.prototype = {
 		var up = hxd_Key.isDown(38) || this.game.gamePad.yAxis < -0.5;
 		var down = hxd_Key.isDown(40) || this.game.gamePad.yAxis > 0.5;
 		if(up) {
-			var degrees = this.sprite.rotation % 6;
-			if(degrees > 0) {
-				var _g = this.sprite;
-				_g.posChanged = true;
-				_g.rotation -= this.rotationSpeed;
-			}
-			if(degrees < 0) {
-				var _g1 = this.sprite;
-				_g1.posChanged = true;
-				_g1.rotation += this.rotationSpeed;
-			}
+			var y = this.game.s2d.width / 2;
+			var x = this.game.s2d.height;
+			var angle = Math.atan2(y - this.sprite.y,x - this.sprite.x);
+			haxe_Log.trace("UP: " + x + " " + y + " : " + angle,{ fileName : "Player.hx", lineNumber : 49, className : "entities.Player", methodName : "updateMovement"});
+			var _this = this.sprite;
+			_this.posChanged = true;
+			_this.rotation = angle;
 		}
 		if(down) {
-			var degrees1 = this.sprite.rotation % 6;
-			degrees1 = Math.abs(degrees1);
-			if(degrees1 > 3) {
-				var _g2 = this.sprite;
-				_g2.posChanged = true;
-				_g2.rotation += this.rotationSpeed;
-			}
-			if(degrees1 < 3) {
-				var _g3 = this.sprite;
-				_g3.posChanged = true;
-				_g3.rotation -= this.rotationSpeed;
-			}
+			var y1 = this.game.s2d.width / 2;
+			var x1 = 0;
+			var angle1 = Math.atan2(y1 - this.sprite.y,x1 - this.sprite.x);
+			haxe_Log.trace("DOWN: " + x1 + " " + y1 + " : " + (angle1 - 6),{ fileName : "Player.hx", lineNumber : 58, className : "entities.Player", methodName : "updateMovement"});
+			var _this1 = this.sprite;
+			_this1.posChanged = true;
+			_this1.rotation = angle1 - 6;
 		}
 		if(left) {
-			var degrees2 = this.sprite.rotation % 6;
-			if(degrees2 > -4.5 || degrees2 < 1.5) {
-				var _g4 = this.sprite;
-				_g4.posChanged = true;
-				_g4.rotation -= this.rotationSpeed;
-			}
-			if(degrees2 < 4.5 || degrees2 > -1.5) {
-				var _g5 = this.sprite;
-				_g5.posChanged = true;
-				_g5.rotation += this.rotationSpeed;
-			}
+			var y2 = 0;
+			var x2 = this.game.s2d.height / 2;
+			var angle2 = Math.atan2(y2 - this.sprite.y,x2 - this.sprite.x);
+			haxe_Log.trace("LEFT: " + x2 + " " + y2 + " : " + (angle2 - 6),{ fileName : "Player.hx", lineNumber : 66, className : "entities.Player", methodName : "updateMovement"});
+			var _this2 = this.sprite;
+			_this2.posChanged = true;
+			_this2.rotation = angle2 - 6;
 		}
 		if(right) {
-			var degrees3 = this.sprite.rotation % 6;
-			if(degrees3 > 4.5 && degrees3 < -1.5) {
-				var _g6 = this.sprite;
-				_g6.posChanged = true;
-				_g6.rotation += this.rotationSpeed;
-			}
-			if(degrees3 < -4.5 && degrees3 > 1.5) {
-				var _g7 = this.sprite;
-				_g7.posChanged = true;
-				_g7.rotation -= this.rotationSpeed;
-			}
+			var y3 = this.game.s2d.width / 2;
+			var x3 = this.game.s2d.height / 2;
+			var angle3 = Math.atan2(y3 - this.sprite.y,x3 - this.sprite.x);
+			haxe_Log.trace("RIGHT: " + x3 + " " + y3 + " : " + angle3,{ fileName : "Player.hx", lineNumber : 74, className : "entities.Player", methodName : "updateMovement"});
+			var _this3 = this.sprite;
+			_this3.posChanged = true;
+			_this3.rotation = angle3;
 		}
 	}
 	,update: function(dt) {

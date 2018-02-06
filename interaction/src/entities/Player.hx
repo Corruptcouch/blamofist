@@ -43,43 +43,36 @@ class Player
 		var down = Key.isDown(Key.DOWN) || game.gamePad.yAxis > 0.5;
 		
 		if (up) {
-			var degrees = sprite.rotation % 6;
-			if (degrees > 0) {
-				sprite.rotation -= rotationSpeed;
-			}
-			if (degrees < 0) {
-				sprite.rotation += rotationSpeed;
-			}
+			var y = game.s2d.width / 2;
+			var x = game.s2d.height;
+			var angle = Math.atan2(y - sprite.y, x - sprite.x);
+			trace("UP: " + x + " " + y + " : " + angle);
+			sprite.rotation = angle;
+			
 		}
 		
 		if (down) {
-			var degrees = sprite.rotation % 6;
-			degrees = Math.abs(degrees);
-			if (degrees > 3) {
-				sprite.rotation += rotationSpeed;
-			}
-			if (degrees < 3) {
-				sprite.rotation -= rotationSpeed;
-			}
+			var y = game.s2d.width / 2;
+			var x = 0;
+			var angle = Math.atan2(y - sprite.y, x - sprite.x);
+			trace("DOWN: " + x + " " + y + " : " + (angle - 6));
+			sprite.rotation = angle - 6;
+			
 		}
 		if (left) {
-			var degrees = sprite.rotation % 6;		
-			if (degrees > -4.5 || degrees < 1.5) {
-				sprite.rotation -= rotationSpeed;
-			}
-			if (degrees < 4.5 || degrees > -1.5) {
-				sprite.rotation += rotationSpeed;
-			}
+			var y = 0;
+			var x = game.s2d.height / 2;
+			var angle = Math.atan2(y - sprite.y, x - sprite.x);
+			trace("LEFT: " + x + " " + y + " : " + (angle - 6));
+			sprite.rotation = angle - 6;
 		}
 		
 		if (right) {
-			var degrees = sprite.rotation % 6;
-			if (degrees > 4.5 && degrees < -1.5) {
-				sprite.rotation += rotationSpeed;
-			}
-			if (degrees < -4.5 && degrees > 1.5) {
-				sprite.rotation -= rotationSpeed;
-			}
+			var y = game.s2d.width / 2;
+			var x = game.s2d.height / 2;
+			var angle = Math.atan2(y - sprite.y, x - sprite.x);
+			trace("RIGHT: " + x + " " + y + " : " + angle);
+			sprite.rotation = angle;
 		}
 	}
 	
