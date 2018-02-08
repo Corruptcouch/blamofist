@@ -862,42 +862,13 @@ entities_Player.prototype = {
 		var right = hxd_Key.isDown(39) || this.game.gamePad.xAxis > 0.5;
 		var up = hxd_Key.isDown(38) || this.game.gamePad.yAxis < -0.5;
 		var down = hxd_Key.isDown(40) || this.game.gamePad.yAxis > 0.5;
-		if(up) {
-			var y = this.game.s2d.width / 2;
-			var x = this.game.s2d.height;
-			var angle = Math.atan2(y - this.sprite.y,x - this.sprite.x);
-			haxe_Log.trace("UP: " + x + " " + y + " : " + angle,{ fileName : "Player.hx", lineNumber : 49, className : "entities.Player", methodName : "updateMovement"});
-			var _this = this.sprite;
-			_this.posChanged = true;
-			_this.rotation = angle;
+		var angle = Math.atan2(this.game.s2d.get_mouseY() - this.sprite.y,this.game.s2d.get_mouseX() - this.sprite.x);
+		if(angle < 0) {
+			angle = 2 * Math.PI - -angle;
 		}
-		if(down) {
-			var y1 = this.game.s2d.width / 2;
-			var x1 = 0;
-			var angle1 = Math.atan2(y1 - this.sprite.y,x1 - this.sprite.x);
-			haxe_Log.trace("DOWN: " + x1 + " " + y1 + " : " + (angle1 - 6),{ fileName : "Player.hx", lineNumber : 58, className : "entities.Player", methodName : "updateMovement"});
-			var _this1 = this.sprite;
-			_this1.posChanged = true;
-			_this1.rotation = angle1 - 6;
-		}
-		if(left) {
-			var y2 = 0;
-			var x2 = this.game.s2d.height / 2;
-			var angle2 = Math.atan2(y2 - this.sprite.y,x2 - this.sprite.x);
-			haxe_Log.trace("LEFT: " + x2 + " " + y2 + " : " + (angle2 - 6),{ fileName : "Player.hx", lineNumber : 66, className : "entities.Player", methodName : "updateMovement"});
-			var _this2 = this.sprite;
-			_this2.posChanged = true;
-			_this2.rotation = angle2 - 6;
-		}
-		if(right) {
-			var y3 = this.game.s2d.width / 2;
-			var x3 = this.game.s2d.height / 2;
-			var angle3 = Math.atan2(y3 - this.sprite.y,x3 - this.sprite.x);
-			haxe_Log.trace("RIGHT: " + x3 + " " + y3 + " : " + angle3,{ fileName : "Player.hx", lineNumber : 74, className : "entities.Player", methodName : "updateMovement"});
-			var _this3 = this.sprite;
-			_this3.posChanged = true;
-			_this3.rotation = angle3;
-		}
+		var _this = this.sprite;
+		_this.posChanged = true;
+		_this.rotation = Math.PI / 2 + angle;
 	}
 	,update: function(dt) {
 		this.updateMovement(dt);

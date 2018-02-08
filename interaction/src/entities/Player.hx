@@ -42,38 +42,12 @@ class Player
 		var up = Key.isDown(Key.UP) || game.gamePad.yAxis < -0.5;
 		var down = Key.isDown(Key.DOWN) || game.gamePad.yAxis > 0.5;
 		
-		if (up) {
-			var y = game.s2d.width / 2;
-			var x = game.s2d.height;
-			var angle = Math.atan2(y - sprite.y, x - sprite.x);
-			trace("UP: " + x + " " + y + " : " + angle);
-			sprite.rotation = angle;
-			
-		}
-		
-		if (down) {
-			var y = game.s2d.width / 2;
-			var x = 0;
-			var angle = Math.atan2(y - sprite.y, x - sprite.x);
-			trace("DOWN: " + x + " " + y + " : " + (angle - 6));
-			sprite.rotation = angle - 6;
-			
-		}
-		if (left) {
-			var y = 0;
-			var x = game.s2d.height / 2;
-			var angle = Math.atan2(y - sprite.y, x - sprite.x);
-			trace("LEFT: " + x + " " + y + " : " + (angle - 6));
-			sprite.rotation = angle - 6;
-		}
-		
-		if (right) {
-			var y = game.s2d.width / 2;
-			var x = game.s2d.height / 2;
-			var angle = Math.atan2(y - sprite.y, x - sprite.x);
-			trace("RIGHT: " + x + " " + y + " : " + angle);
-			sprite.rotation = angle;
-		}
+		var angle = Math.atan2(game.s2d.mouseY - sprite.y, game.s2d.mouseX - sprite.x );
+		if(angle < 0)
+        {
+            angle = 2*Math.PI - (-angle);
+        }
+		sprite.rotation = Math.PI/2 + angle;
 	}
 	
 	public function update(dt: Float) {
